@@ -1,0 +1,635 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>GasBorrow — Monad Network</title>
+<link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Syne:wght@400;600;700;800&display=swap" rel="stylesheet"/>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/ethers/6.7.0/ethers.umd.min.js"></script>
+<style>
+:root{--bg:#050810;--border:#1a2540;--accent:#7B5BF5;--accent2:#00E5FF;--accent3:#FF3CAC;--green:#00FFA3;--text:#e8eaf6;--muted:#4a5568;--card:#0d1528}
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:var(--bg);color:var(--text);font-family:'Syne',sans-serif;min-height:100vh}
+body::before{content:'';position:fixed;inset:0;background-image:linear-gradient(rgba(123,91,245,.04) 1px,transparent 1px),linear-gradient(90deg,rgba(123,91,245,.04) 1px,transparent 1px);background-size:40px 40px;z-index:0;pointer-events:none}
+.orb{position:fixed;border-radius:50%;filter:blur(120px);pointer-events:none;z-index:0;opacity:.6}
+.orb1{width:600px;height:600px;background:rgba(123,91,245,.15);top:-200px;left:-150px}
+.orb2{width:500px;height:500px;background:rgba(0,229,255,.08);bottom:-150px;right:-150px}
+.wrap{max-width:1080px;margin:0 auto;padding:0 18px;position:relative;z-index:1}
+
+/* HEADER */
+header{border-bottom:1px solid var(--border);padding:14px 0;backdrop-filter:blur(24px);position:sticky;top:0;z-index:100;background:rgba(5,8,16,.9)}
+.hdr{display:flex;align-items:center;justify-content:space-between;gap:10px}
+.logo{display:flex;align-items:center;gap:9px;font-size:1.25rem;font-weight:800;letter-spacing:-.5px;text-decoration:none;color:var(--text)}
+.logo-box{width:32px;height:32px;background:linear-gradient(135deg,var(--accent),var(--accent2));border-radius:8px;display:flex;align-items:center;justify-content:center}
+.logo span{color:var(--accent2)}
+.hdr-r{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.badge-chain{font-family:'Space Mono',monospace;font-size:.65rem;padding:4px 10px;background:rgba(0,229,255,.07);border:1px solid rgba(0,229,255,.2);border-radius:20px;color:var(--accent2);display:flex;align-items:center;gap:5px}
+.dot{width:6px;height:6px;background:var(--green);border-radius:50%;animation:blink 2s infinite}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:.25}}
+.badge-addr{font-family:'Space Mono',monospace;font-size:.65rem;color:var(--accent2);background:rgba(0,229,255,.06);border:1px solid rgba(0,229,255,.15);padding:3px 9px;border-radius:6px;display:none}
+.btn-conn{border:none;padding:9px 15px;border-radius:10px;font-family:'Syne',sans-serif;font-weight:700;font-size:.78rem;cursor:pointer;transition:all .18s;display:flex;align-items:center;gap:6px;white-space:nowrap}
+.btn-mm{background:linear-gradient(135deg,#E8831A,#c96a10);color:#fff}
+.btn-mm:hover{box-shadow:0 6px 20px rgba(232,131,26,.4);transform:translateY(-1px)}
+.btn-near{background:linear-gradient(135deg,#00C1DE,#007FAA);color:#fff}
+.btn-near:hover{box-shadow:0 6px 20px rgba(0,193,222,.35);transform:translateY(-1px)}
+.btn-conn.ok{background:rgba(0,255,163,.1);border:1px solid rgba(0,255,163,.3);color:var(--green)}
+
+/* MODAL */
+.overlay{position:fixed;inset:0;background:rgba(0,0,0,.8);backdrop-filter:blur(12px);z-index:200;display:none;align-items:center;justify-content:center}
+.overlay.on{display:flex}
+.modal{background:var(--card);border:1px solid var(--border);border-radius:20px;padding:26px;max-width:400px;width:92%;animation:pop .2s ease;position:relative}
+@keyframes pop{from{transform:scale(.94);opacity:0}to{transform:scale(1);opacity:1}}
+.modal-x{position:absolute;top:14px;right:14px;background:none;border:none;color:var(--muted);font-size:1.1rem;cursor:pointer}
+.modal h2{font-size:1.1rem;font-weight:800;margin-bottom:3px}
+.modal-sub{font-family:'Space Mono',monospace;font-size:.65rem;color:var(--muted);margin-bottom:18px}
+.wopt{display:flex;align-items:center;gap:12px;padding:13px 14px;border:1px solid var(--border);border-radius:12px;margin-bottom:9px;cursor:pointer;transition:all .18s;background:none;width:100%;text-align:left;color:var(--text)}
+.wopt:hover{border-color:var(--accent);background:rgba(123,91,245,.06);transform:translateX(3px)}
+.wopt-ic{width:40px;height:40px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:20px;flex-shrink:0}
+.wopt-name{font-weight:700;font-size:.85rem}
+.wopt-sub{font-family:'Space Mono',monospace;font-size:.62rem;color:var(--muted);margin-top:1px}
+.near-info{background:rgba(0,193,222,.05);border:1px solid rgba(0,193,222,.15);border-radius:10px;padding:11px 13px;font-family:'Space Mono',monospace;font-size:.64rem;color:var(--muted);margin-top:10px;line-height:1.7}
+.near-info a{color:var(--accent2);text-decoration:none}
+
+/* NO-WALLET BANNER */
+.no-wallet-banner{background:rgba(123,91,245,.07);border:1px solid rgba(123,91,245,.2);border-radius:12px;padding:14px 18px;text-align:center;margin-bottom:18px;font-family:'Space Mono',monospace;font-size:.75rem;color:var(--muted)}
+.no-wallet-banner b{color:var(--accent2)}
+
+/* HERO */
+.hero{padding:40px 0 20px;text-align:center}
+.hero h1{font-size:clamp(1.9rem,5vw,3.3rem);font-weight:800;line-height:1.1;letter-spacing:-2px;background:linear-gradient(135deg,#fff 30%,var(--accent) 65%,var(--accent2));-webkit-background-clip:text;-webkit-text-fill-color:transparent;margin-bottom:8px}
+.hero p{color:var(--muted);font-size:.82rem;font-family:'Space Mono',monospace}
+
+/* STATS */
+.stats{display:grid;grid-template-columns:repeat(4,1fr);gap:11px;margin:20px 0}
+.sc{background:var(--card);border:1px solid var(--border);border-radius:13px;padding:15px;transition:border-color .18s}
+.sc:hover{border-color:var(--accent)}
+.sc-label{font-family:'Space Mono',monospace;font-size:.6rem;color:var(--muted);text-transform:uppercase;letter-spacing:1px;margin-bottom:7px}
+.sc-val{font-size:1.2rem;font-weight:800;font-family:'Space Mono',monospace;background:linear-gradient(135deg,var(--accent2),var(--accent));-webkit-background-clip:text;-webkit-text-fill-color:transparent}
+.sc-sub{font-size:.62rem;color:var(--muted);margin-top:3px;font-family:'Space Mono',monospace}
+.green-grad{background:linear-gradient(135deg,#00FFA3,#00c97d)!important;-webkit-background-clip:text!important;-webkit-text-fill-color:transparent!important}
+.pink-grad{background:linear-gradient(135deg,#FF3CAC,#cc0088)!important;-webkit-background-clip:text!important;-webkit-text-fill-color:transparent!important}
+
+/* STATUS */
+.status-box{background:var(--card);border:1px solid var(--border);border-radius:15px;padding:18px;margin-bottom:13px}
+.sb-hdr{display:flex;align-items:center;justify-content:space-between;margin-bottom:13px}
+.sb-title{font-weight:700;font-size:.88rem}
+.loan-badge{font-family:'Space Mono',monospace;font-size:.63rem;padding:3px 9px;border-radius:20px}
+.lb-none{background:rgba(74,85,104,.2);color:var(--muted);border:1px solid var(--border)}
+.lb-ok{background:rgba(0,255,163,.1);color:var(--green);border:1px solid rgba(0,255,163,.3)}
+.lb-risk{background:rgba(255,60,172,.1);color:var(--accent3);border:1px solid rgba(255,60,172,.3)}
+.sgrid{display:grid;grid-template-columns:repeat(3,1fr);gap:11px}
+.si-label{font-size:.6rem;color:var(--muted);font-family:'Space Mono',monospace;text-transform:uppercase;margin-bottom:3px}
+.si-val{font-size:.85rem;font-weight:700;font-family:'Space Mono',monospace}
+
+/* CARDS */
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px}
+.card{background:var(--card);border:1px solid var(--border);border-radius:15px;padding:18px;transition:border-color .18s}
+.card:hover{border-color:rgba(123,91,245,.3)}
+.card-hdr{display:flex;align-items:center;gap:9px;margin-bottom:15px}
+.cic{width:34px;height:34px;border-radius:9px;display:flex;align-items:center;justify-content:center;font-size:15px}
+.cic-g{background:rgba(0,255,163,.1);border:1px solid rgba(0,255,163,.2)}
+.cic-p{background:rgba(123,91,245,.1);border:1px solid rgba(123,91,245,.2)}
+.cic-c{background:rgba(0,229,255,.1);border:1px solid rgba(0,229,255,.2)}
+.cic-r{background:rgba(255,60,172,.1);border:1px solid rgba(255,60,172,.2)}
+.cic-o{background:rgba(255,150,0,.1);border:1px solid rgba(255,150,0,.2)}
+.ctitle{font-size:.88rem;font-weight:700}
+.csub{font-size:.65rem;color:var(--muted);font-family:'Space Mono',monospace;margin-top:1px}
+.ig{margin-bottom:10px}
+.ilabel{font-size:.65rem;color:var(--muted);font-family:'Space Mono',monospace;text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px;display:block}
+.iw{position:relative}
+input{width:100%;background:rgba(255,255,255,.04);border:1px solid var(--border);border-radius:9px;padding:10px 46px 10px 12px;color:var(--text);font-family:'Space Mono',monospace;font-size:.78rem;outline:none;transition:border-color .18s}
+input:focus{border-color:var(--accent)}
+.itag{position:absolute;right:9px;top:50%;transform:translateY(-50%);font-size:.58rem;color:var(--muted);font-family:'Space Mono',monospace;background:#0c1120;padding:2px 5px;border-radius:4px}
+.ibox{background:rgba(123,91,245,.05);border:1px solid rgba(123,91,245,.13);border-radius:9px;padding:10px 12px;font-family:'Space Mono',monospace;font-size:.66rem;color:var(--muted);margin-bottom:10px;display:flex;flex-direction:column;gap:4px}
+.ir{display:flex;justify-content:space-between}
+.iv{color:var(--accent2)}
+.btn{width:100%;padding:11px;border:none;border-radius:9px;font-family:'Syne',sans-serif;font-weight:700;font-size:.84rem;cursor:pointer;transition:all .18s}
+.btn-g{background:linear-gradient(135deg,#00FFA3,#00c97d);color:#000}
+.btn-g:hover{transform:translateY(-1px);box-shadow:0 7px 22px rgba(0,255,163,.3)}
+.btn-p{background:linear-gradient(135deg,var(--accent),#5a3fd4);color:#fff}
+.btn-p:hover{transform:translateY(-1px);box-shadow:0 7px 22px rgba(123,91,245,.4)}
+.btn-c{background:linear-gradient(135deg,var(--accent2),#0099cc);color:#000}
+.btn-c:hover{transform:translateY(-1px);box-shadow:0 7px 22px rgba(0,229,255,.3)}
+.btn-r{background:linear-gradient(135deg,var(--accent3),#cc0088);color:#fff}
+.btn-r:hover{transform:translateY(-1px);box-shadow:0 7px 22px rgba(255,60,172,.3)}
+.btn-ol{background:transparent;border:1px solid var(--border);color:var(--muted)}
+.btn-ol:hover{border-color:var(--accent);color:var(--text)}
+.btn:disabled{opacity:.35;cursor:not-allowed;transform:none!important;box-shadow:none!important}
+.btn-sm{width:auto;padding:5px 12px;font-size:.7rem}
+.dvd{height:1px;background:var(--border);margin:12px 0}
+.full{grid-column:1/-1}
+.row2{display:flex;gap:7px}
+.sp{display:inline-block;width:12px;height:12px;border:2px solid rgba(255,255,255,.25);border-top-color:#fff;border-radius:50%;animation:spin .7s linear infinite;vertical-align:middle;margin-right:5px}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+/* TOAST */
+#toast{position:fixed;bottom:22px;right:22px;z-index:999;max-width:320px}
+.ti{background:var(--card);border:1px solid var(--border);border-radius:11px;padding:12px 14px;font-family:'Space Mono',monospace;font-size:.7rem;margin-top:8px;display:flex;gap:9px;animation:sli .25s ease;box-shadow:0 16px 40px rgba(0,0,0,.5)}
+.ti-s{border-color:rgba(0,255,163,.3)}.ti-e{border-color:rgba(255,60,172,.3)}.ti-i{border-color:rgba(0,229,255,.3)}
+.ti-body{flex:1;line-height:1.5}.ti-t{font-weight:700;margin-bottom:1px}
+@keyframes sli{from{transform:translateX(80px);opacity:0}to{transform:translateX(0);opacity:1}}
+footer{border-top:1px solid var(--border);padding:14px 0;margin-top:12px;text-align:center;font-family:'Space Mono',monospace;font-size:.63rem;color:var(--muted)}
+footer a{color:var(--accent2);text-decoration:none}
+@media(max-width:720px){.stats{grid-template-columns:1fr 1fr}.grid2{grid-template-columns:1fr}.sgrid{grid-template-columns:1fr 1fr}}
+@media(max-width:440px){.stats{grid-template-columns:1fr}.sgrid{grid-template-columns:1fr}.hdr-r{gap:5px}}
+</style>
+</head>
+<body>
+<div class="orb orb1"></div><div class="orb orb2"></div>
+
+<!-- MODAL -->
+<div class="overlay" id="overlay">
+  <div class="modal">
+    <button class="modal-x" onclick="closeModal()">✕</button>
+    <h2>Connect Wallet</h2>
+    <div class="modal-sub">// Select wallet · Monad Network (Chain 143)</div>
+    <button class="wopt" onclick="connectMM()">
+      <div class="wopt-ic" style="background:rgba(232,131,26,.13);border:1px solid rgba(232,131,26,.3)">🦊</div>
+      <div><div class="wopt-name">MetaMask</div><div class="wopt-sub">EVM wallet · Recommended</div></div>
+      <span style="margin-left:auto;color:var(--muted)">→</span>
+    </button>
+    <button class="wopt" onclick="connectNEAR()">
+      <div class="wopt-ic" style="background:rgba(0,193,222,.13);border:1px solid rgba(0,193,222,.3)">🔷</div>
+      <div><div class="wopt-name">NEAR Wallet</div><div class="wopt-sub">Sender / MyNearWallet EVM bridge</div></div>
+      <span style="margin-left:auto;color:var(--muted)">→</span>
+    </button>
+    <button class="wopt" onclick="connectAny()">
+      <div class="wopt-ic" style="background:rgba(123,91,245,.13);border:1px solid rgba(123,91,245,.3)">🔗</div>
+      <div><div class="wopt-name">Any EVM Wallet</div><div class="wopt-sub">Rabby · Trust · Coinbase · Phantom</div></div>
+      <span style="margin-left:auto;color:var(--muted)">→</span>
+    </button>
+    <div class="near-info">
+      🔷 NEAR on Monad: Install <a href="https://senderwallet.io" target="_blank">Sender Wallet</a> (NEAR+EVM) or use <a href="https://app.mynearwallet.com" target="_blank">MyNearWallet</a>.<br/>
+      Bridge tokens via <a href="https://rainbowbridge.app" target="_blank">Rainbow Bridge</a>.
+    </div>
+  </div>
+</div>
+
+<!-- HEADER -->
+<header>
+  <div class="wrap">
+    <div class="hdr">
+      <div class="logo">⛽ Gas<span>Borrow</span></div>
+      <div class="hdr-r">
+        <div class="badge-chain"><span class="dot"></span>Monad #143</div>
+        <div class="badge-addr" id="addrBadge"></div>
+        <button class="btn-conn btn-mm"   id="mmBtn"   onclick="openModal()">🦊 MetaMask</button>
+        <button class="btn-conn btn-near" id="nearBtn" onclick="openModal()">🔷 NEAR</button>
+      </div>
+    </div>
+  </div>
+</header>
+
+<div class="wrap">
+  <div class="hero">
+    <h1>Borrow Gas.<br/>Earn Yield.</h1>
+    <p>// Decentralized MON lending on Monad · 10% APR · 5% APY · 1% fee</p>
+  </div>
+
+  <!-- NO WALLET BANNER -->
+  <div class="no-wallet-banner" id="noWalletBanner">
+    ⚡ <b>Connect your wallet</b> to view live stats and interact with the protocol
+  </div>
+
+  <!-- STATS -->
+  <div class="stats">
+    <div class="sc"><div class="sc-label">Total Liquidity</div><div class="sc-val" id="sLiq">—</div><div class="sc-sub">MON available</div></div>
+    <div class="sc"><div class="sc-label">Exchange Rate</div><div class="sc-val" id="sRate">—</div><div class="sc-sub">MON per share</div></div>
+    <div class="sc"><div class="sc-label">Borrow APR</div><div class="sc-val pink-grad">10%</div><div class="sc-sub">annual rate</div></div>
+    <div class="sc"><div class="sc-label">Lender APY</div><div class="sc-val green-grad">5%</div><div class="sc-sub">annual yield</div></div>
+  </div>
+
+  <!-- MY STATUS -->
+  <div class="status-box">
+    <div class="sb-hdr">
+      <div style="display:flex;align-items:center;gap:9px">
+        <div class="sb-title">My Status</div>
+        <div class="loan-badge lb-none" id="lBadge">NOT CONNECTED</div>
+      </div>
+      <button class="btn btn-ol btn-sm" onclick="refreshAll()">↻ Refresh</button>
+    </div>
+    <div class="sgrid">
+      <div><div class="si-label">Principal</div><div class="si-val" id="lPrin">—</div></div>
+      <div><div class="si-label">Collateral Locked</div><div class="si-val" id="lCol">—</div></div>
+      <div><div class="si-label">Total Owed</div><div class="si-val" id="lOwed" style="color:var(--accent3)">—</div></div>
+      <div><div class="si-label">My Shares</div><div class="si-val" id="mShares">—</div></div>
+      <div><div class="si-label">My Pool Value</div><div class="si-val" id="mVal" style="color:var(--green)">—</div></div>
+      <div><div class="si-label">Wallet</div><div class="si-val" id="wLabel" style="color:var(--accent2)">—</div></div>
+    </div>
+  </div>
+
+  <div class="grid2">
+    <!-- DEPOSIT -->
+    <div class="card">
+      <div class="card-hdr"><div class="cic cic-g">💰</div><div><div class="ctitle">Deposit & Earn</div><div class="csub">5% APY · share-based pool</div></div></div>
+      <div class="ig"><label class="ilabel">Deposit Amount</label><div class="iw"><input type="number" id="dAmt" placeholder="0.0" min="0" step="0.01"/><span class="itag">MON</span></div></div>
+      <div class="ibox">
+        <div class="ir"><span>APY</span><span class="iv">5% annual</span></div>
+        <div class="ir"><span>Mechanism</span><span class="iv">share-based</span></div>
+        <div class="ir"><span>Withdraw</span><span class="iv">anytime</span></div>
+      </div>
+      <button class="btn btn-g" id="dBtn" onclick="doDeposit()">Deposit MON</button>
+      <div class="dvd"></div>
+      <div class="ig"><label class="ilabel">Shares to Withdraw</label><div class="iw"><input type="number" id="wSh" placeholder="0.0" min="0" step="0.001"/><span class="itag">SHARES</span></div></div>
+      <button class="btn btn-ol" id="wBtn" onclick="doWithdraw()">Withdraw</button>
+    </div>
+
+    <!-- BORROW -->
+    <div class="card">
+      <div class="card-hdr"><div class="cic cic-p">⚡</div><div><div class="ctitle">Borrow MON</div><div class="csub">150% collateral · 10% APR · 1% fee</div></div></div>
+      <div class="ig"><label class="ilabel">Borrow Amount</label><div class="iw"><input type="number" id="bAmt" placeholder="0.0" min="0" step="0.01" oninput="calcCol()"/><span class="itag">MON</span></div></div>
+      <div class="ibox">
+        <div class="ir"><span>Collateral needed (150%)</span><span class="iv" id="rCol">—</span></div>
+        <div class="ir"><span>Origination fee (1%)</span><span class="iv" id="oFee">—</span></div>
+        <div class="ir"><span>You receive</span><span class="iv" id="yRcv">—</span></div>
+        <div class="ir"><span>Max duration</span><span class="iv">365 days</span></div>
+      </div>
+      <button class="btn btn-p" id="bBtn" onclick="doBorrow()">Borrow MON</button>
+    </div>
+
+    <!-- REPAY -->
+    <div class="card">
+      <div class="card-hdr"><div class="cic cic-c">🔄</div><div><div class="ctitle">Repay Loan</div><div class="csub">pay principal + interest · get collateral back</div></div></div>
+      <div class="ibox">
+        <div class="ir"><span>Total owed</span><span class="iv" id="rOwed">connect wallet</span></div>
+        <div class="ir"><span>Collateral returned</span><span class="iv" id="rColRet">—</span></div>
+        <div class="ir"><span>Interest rate</span><span class="iv">10% APR</span></div>
+      </div>
+      <button class="btn btn-c" id="rBtn" onclick="doRepay()">Repay Loan</button>
+    </div>
+
+    <!-- LIQUIDATE -->
+    <div class="card">
+      <div class="card-hdr"><div class="cic cic-o">🎯</div><div><div class="ctitle">Liquidate</div><div class="csub">earn 5% bonus on bad loans</div></div></div>
+      <div class="ig"><label class="ilabel">Borrower Address</label><div class="iw"><input type="text" id="liqAddr" placeholder="0x..."/></div></div>
+      <div class="ibox">
+        <div class="ir"><span>Your bonus</span><span class="iv">5% of collateral</span></div>
+        <div class="ir"><span>Trigger</span><span class="iv">collateral &lt; 120%</span></div>
+        <div class="ir"><span>Status</span><span class="iv" id="liqSt">enter address</span></div>
+      </div>
+      <div class="row2">
+        <button class="btn btn-ol" style="flex:1" onclick="checkLiq()">Check</button>
+        <button class="btn btn-r" style="flex:1" id="liqBtn" onclick="doLiquidate()">Liquidate</button>
+      </div>
+    </div>
+
+    <!-- OWNER PANEL -->
+    <div class="card full" id="ownerPanel" style="display:none">
+      <div class="card-hdr"><div class="cic cic-r">👑</div><div><div class="ctitle">Owner Panel</div><div class="csub">0x592B35c8917eD36c39Ef73D0F5e92B0173560b2e</div></div></div>
+      <div class="stats" style="margin:0 0 13px">
+        <div class="sc"><div class="sc-label">Protocol Fees</div><div class="sc-val" id="oFees">—</div><div class="sc-sub">ready to withdraw</div></div>
+        <div class="sc"><div class="sc-label">Total Shares</div><div class="sc-val" id="oShares">—</div><div class="sc-sub">outstanding</div></div>
+        <div class="sc"><div class="sc-label">Contract Balance</div><div class="sc-val" id="oBal">—</div><div class="sc-sub">MON held</div></div>
+        <div class="sc"><div class="sc-label">Paused</div><div class="sc-val" id="oPaused">—</div><div class="sc-sub">protocol state</div></div>
+      </div>
+      <div class="row2" style="flex-wrap:wrap;gap:8px">
+        <button class="btn btn-r" style="flex:1;min-width:130px" id="wfBtn" onclick="doWithdrawFees()">💸 Withdraw Fees</button>
+        <button class="btn btn-ol" style="flex:1;min-width:130px" onclick="doPause()">⏸ Pause</button>
+        <button class="btn btn-ol" style="flex:1;min-width:130px" onclick="doUnpause()">▶ Unpause</button>
+      </div>
+    </div>
+  </div>
+
+  <footer>
+    Contract: <a href="https://explorer.monad.xyz/address/0xB1D6424336820D11Ba1053fE313101e4B45FE620" target="_blank">0xB1D6424336820D11Ba1053fE313101e4B45FE620</a>
+    &nbsp;·&nbsp; Monad Mainnet · Chain ID 143
+  </footer>
+</div>
+<div id="toast"></div>
+
+<script>
+// ── CONFIG ─────────────────────────────────────────────────────
+const CONTRACT   = "0xB1D6424336820D11Ba1053fE313101e4B45FE620";
+const OWNER_ADDR = "0x592B35c8917eD36c39Ef73D0F5e92B0173560b2e";
+const CHAIN_ID   = 143;
+const CHAIN_HEX  = "0x8F"; // 143 in hex
+
+// Full ABI from verified contract
+const ABI = [
+  {"inputs":[{"internalType":"address","name":"_owner","type":"address"}],"stateMutability":"nonpayable","type":"constructor"},
+  {"inputs":[],"name":"deposit","outputs":[],"stateMutability":"payable","type":"function"},
+  {"inputs":[{"internalType":"uint256","name":"shares","type":"uint256"}],"name":"withdraw","outputs":[],"stateMutability":"nonpayable","type":"function"},
+  {"inputs":[{"internalType":"uint256","name":"amount","type":"uint256"}],"name":"borrow","outputs":[],"stateMutability":"payable","type":"function"},
+  {"inputs":[],"name":"repay","outputs":[],"stateMutability":"payable","type":"function"},
+  {"inputs":[{"internalType":"address","name":"borrower","type":"address"}],"name":"liquidate","outputs":[],"stateMutability":"nonpayable","type":"function"},
+  {"inputs":[],"name":"withdrawFees","outputs":[],"stateMutability":"nonpayable","type":"function"},
+  {"inputs":[],"name":"pause","outputs":[],"stateMutability":"nonpayable","type":"function"},
+  {"inputs":[],"name":"unpause","outputs":[],"stateMutability":"nonpayable","type":"function"},
+  {"inputs":[],"name":"emergencyWithdraw","outputs":[],"stateMutability":"nonpayable","type":"function"},
+  {"inputs":[],"name":"getProtocolStats","outputs":[{"internalType":"uint256","name":"liquidity","type":"uint256"},{"internalType":"uint256","name":"fees","type":"uint256"},{"internalType":"uint256","name":"shares","type":"uint256"},{"internalType":"uint256","name":"rate","type":"uint256"},{"internalType":"uint256","name":"contractBalance","type":"uint256"}],"stateMutability":"view","type":"function"},
+  {"inputs":[{"internalType":"address","name":"borrower","type":"address"}],"name":"getLoan","outputs":[{"internalType":"uint256","name":"principal","type":"uint256"},{"internalType":"uint256","name":"startTime","type":"uint256"},{"internalType":"uint256","name":"collateral","type":"uint256"},{"internalType":"bool","name":"active","type":"bool"},{"internalType":"uint256","name":"interestOwed","type":"uint256"},{"internalType":"uint256","name":"totalOwed","type":"uint256"},{"internalType":"bool","name":"liquidatable","type":"bool"},{"internalType":"bool","name":"expired","type":"bool"}],"stateMutability":"view","type":"function"},
+  {"inputs":[{"internalType":"address","name":"lender","type":"address"}],"name":"lenderValue","outputs":[{"internalType":"uint256","name":"","type":"uint256"}],"stateMutability":"view","type":"function"},
+  {"inputs":[{"internalType":"address","name":"","type":"address"}],"name":"lenders","outputs":[{"internalType":"uint256","name":"shares","type":"uint256"},{"internalType":"uint256","name":"depositTime","type":"uint256"}],"stateMutability":"view","type":"function"},
+  {"inputs":[{"internalType":"address","name":"borrower","type":"address"}],"name":"isLiquidatable","outputs":[{"internalType":"bool","name":"","type":"bool"}],"stateMutability":"view","type":"function"},
+  {"inputs":[],"name":"paused","outputs":[{"internalType":"bool","name":"","type":"bool"}],"stateMutability":"view","type":"function"},
+  {"inputs":[],"name":"protocolFees","outputs":[{"internalType":"uint256","name":"","type":"uint256"}],"stateMutability":"view","type":"function"},
+  {"inputs":[],"name":"totalShares","outputs":[{"internalType":"uint256","name":"","type":"uint256"}],"stateMutability":"view","type":"function"},
+  {"inputs":[{"internalType":"uint256","name":"bps","type":"uint256"}],"name":"setOriginationFee","outputs":[],"stateMutability":"nonpayable","type":"function"},
+  {"inputs":[{"internalType":"uint256","name":"bps","type":"uint256"}],"name":"setBorrowerRate","outputs":[],"stateMutability":"nonpayable","type":"function"},
+  {"inputs":[{"internalType":"uint256","name":"bps","type":"uint256"}],"name":"setLenderRate","outputs":[],"stateMutability":"nonpayable","type":"function"},
+  {"inputs":[{"internalType":"uint256","name":"bps","type":"uint256"}],"name":"setLiquidationFee","outputs":[],"stateMutability":"nonpayable","type":"function"},
+  {"inputs":[{"internalType":"uint256","name":"bps","type":"uint256"}],"name":"setCollateralRatio","outputs":[],"stateMutability":"nonpayable","type":"function"},
+  {"inputs":[{"internalType":"uint256","name":"dur","type":"uint256"}],"name":"setMaxLoanDuration","outputs":[],"stateMutability":"nonpayable","type":"function"}
+];
+
+// ── STATE ──────────────────────────────────────────────────────
+let provider, signer, contract, wallet=null, wLabel="";
+
+// ── ALL READS GO THROUGH window.ethereum (no external RPC fetch) ──
+// This is the ONLY reliable way to avoid CORS in local HTML files.
+async function ethCall(fnName, args){
+  if(!window.ethereum) throw new Error("No wallet connected");
+  const iface = new ethers.Interface(ABI);
+  const data  = iface.encodeFunctionData(fnName, args||[]);
+  const hex   = await window.ethereum.request({
+    method:"eth_call",
+    params:[{to:CONTRACT, data}, "latest"]
+  });
+  return iface.decodeFunctionResult(fnName, hex);
+}
+
+// ── MODAL ──────────────────────────────────────────────────────
+function openModal(){ document.getElementById("overlay").classList.add("on"); }
+function closeModal(){ document.getElementById("overlay").classList.remove("on"); }
+document.getElementById("overlay").onclick = e => { if(e.target.id==="overlay") closeModal(); };
+
+// ── CONNECT ────────────────────────────────────────────────────
+async function connectMM(){
+  closeModal();
+  if(!window.ethereum){ return toast("MetaMask not found","Install from metamask.io","e"); }
+  try{
+    await window.ethereum.request({method:"eth_requestAccounts"});
+    wLabel = "MetaMask 🦊";
+    await finishConnect();
+  }catch(e){ toast("Failed", parseErr(e), "e"); }
+}
+
+async function connectNEAR(){
+  closeModal();
+  if(!window.ethereum){ return showNearHelp(); }
+  try{
+    await window.ethereum.request({method:"eth_requestAccounts"});
+    const eth = window.ethereum;
+    if(eth.isNearWallet||eth.isSenderWallet||eth.isMeteorWallet) wLabel="NEAR 🔷";
+    else wLabel = "NEAR/EVM 🔷";
+    await finishConnect();
+  }catch(e){
+    if(e.code===4001){ toast("Rejected","User cancelled","e"); return; }
+    showNearHelp();
+  }
+}
+
+async function connectAny(){
+  closeModal();
+  if(!window.ethereum){ return toast("No wallet","Install an EVM wallet","e"); }
+  try{
+    await window.ethereum.request({method:"eth_requestAccounts"});
+    wLabel = "EVM Wallet 🔗";
+    await finishConnect();
+  }catch(e){ toast("Failed", parseErr(e), "e"); }
+}
+
+function showNearHelp(){
+  toast("NEAR not detected","Install Sender Wallet for NEAR+EVM support","i");
+  setTimeout(()=>{ if(confirm("Install Sender Wallet (NEAR EVM)?\nsenderwallet.io")) window.open("https://senderwallet.io","_blank"); },300);
+}
+
+async function finishConnect(){
+  provider = new ethers.BrowserProvider(window.ethereum);
+  signer   = await provider.getSigner();
+  wallet   = await signer.getAddress();
+  contract = new ethers.Contract(CONTRACT, ABI, signer);
+
+  // Switch to Monad
+  try{
+    await window.ethereum.request({method:"wallet_switchEthereumChain",params:[{chainId:CHAIN_HEX}]});
+  }catch(e){
+    if(e.code===-4902||e.code===4902){
+      await window.ethereum.request({method:"wallet_addEthereumChain",params:[{
+        chainId:CHAIN_HEX, chainName:"Monad Mainnet",
+        nativeCurrency:{name:"MON",symbol:"MON",decimals:18},
+        rpcUrls:["https://rpc.monad.xyz"],
+        blockExplorerUrls:["https://explorer.monad.xyz"]
+      }]});
+    }
+  }
+  // Re-init after possible chain switch
+  provider = new ethers.BrowserProvider(window.ethereum);
+  signer   = await provider.getSigner();
+  wallet   = await signer.getAddress();
+  contract = new ethers.Contract(CONTRACT, ABI, signer);
+
+  const short = wallet.slice(0,6)+"..."+wallet.slice(-4);
+  el("addrBadge").textContent = short;
+  el("addrBadge").style.display = "block";
+  el("noWalletBanner").style.display = "none";
+  ["mmBtn","nearBtn"].forEach(id=>{ const b=el(id); b.textContent="✅ "+short; b.classList.add("ok"); });
+  el("wLabel").textContent = wLabel;
+
+  if(wallet.toLowerCase()===OWNER_ADDR.toLowerCase()){
+    el("ownerPanel").style.display="block";
+    toast("Owner detected","Owner panel unlocked 👑","i");
+  }
+
+  window.ethereum.on("accountsChanged",()=>location.reload());
+  window.ethereum.on("chainChanged",()=>location.reload());
+
+  await refreshAll();
+  toast("Connected", wLabel+" · "+short, "s");
+}
+
+// ── REFRESH — uses ethCall (routes through wallet, zero CORS) ──
+async function refreshAll(){
+  if(!window.ethereum) return; // no wallet = no reads possible
+  try{
+    const stats = await ethCall("getProtocolStats",[]);
+    const [liq,fees,shares,rate,bal] = stats;
+    el("sLiq").textContent   = fmt(liq)+" MON";
+    el("sRate").textContent  = fmtR(rate);
+    el("oFees")   && (el("oFees").textContent   = fmt(fees)+" MON");
+    el("oShares") && (el("oShares").textContent = fmt(shares));
+    el("oBal")    && (el("oBal").textContent    = fmt(bal)+" MON");
+
+    // Paused state
+    if(el("oPaused")){
+      const [paused] = await ethCall("paused",[]);
+      el("oPaused").textContent = paused ? "⏸ YES" : "▶ NO";
+      el("oPaused").style.color = paused ? "var(--accent3)" : "var(--green)";
+    }
+
+    if(wallet){
+      const loan = await ethCall("getLoan",[wallet]);
+      const [principal,,collateral,active,,totalOwed,isLiq] = loan;
+      el("lPrin").textContent  = active ? fmt(principal)+" MON" : "—";
+      el("lCol").textContent   = active ? fmt(collateral)+" MON" : "—";
+      el("lOwed").textContent  = active ? fmt(totalOwed)+" MON" : "—";
+      el("rOwed").textContent  = active ? fmt(totalOwed)+" MON" : "no active loan";
+      el("rColRet").textContent= active ? fmt(collateral)+" MON" : "—";
+
+      const badge = el("lBadge");
+      if(!active){ badge.textContent="NO LOAN"; badge.className="loan-badge lb-none"; }
+      else if(isLiq){ badge.textContent="⚠️ AT RISK"; badge.className="loan-badge lb-risk"; }
+      else{ badge.textContent="ACTIVE ✅"; badge.className="loan-badge lb-ok"; }
+
+      const [val]  = await ethCall("lenderValue",[wallet]);
+      const info   = await ethCall("lenders",[wallet]);
+      el("mShares").textContent = fmt(info[0]);
+      el("mVal").textContent    = fmt(val)+" MON";
+    }
+  }catch(e){ console.warn("Refresh:", e.message); }
+}
+
+// ── ACTIONS ────────────────────────────────────────────────────
+async function doDeposit(){
+  if(!needW()) return;
+  const a = el("dAmt").value;
+  if(!a||+a<=0) return toast("Invalid","Enter MON amount","e");
+  try{
+    busy("dBtn",1);
+    const tx = await contract.deposit({value: ethers.parseEther(a)});
+    toast("Sent","Confirming...","i"); await tx.wait();
+    toast("Deposited!",a+" MON ✅","s");
+    el("dAmt").value=""; await refreshAll();
+  }catch(e){ toast("Failed",parseErr(e),"e"); }
+  finally{ busy("dBtn",0); }
+}
+
+async function doWithdraw(){
+  if(!needW()) return;
+  const s = el("wSh").value;
+  if(!s||+s<=0) return toast("Invalid","Enter shares","e");
+  try{
+    busy("wBtn",1);
+    const tx = await contract.withdraw(ethers.parseEther(s));
+    toast("Sent","Withdrawing...","i"); await tx.wait();
+    toast("Withdrawn!","MON sent ✅","s");
+    el("wSh").value=""; await refreshAll();
+  }catch(e){ toast("Failed",parseErr(e),"e"); }
+  finally{ busy("wBtn",0); }
+}
+
+async function doBorrow(){
+  if(!needW()) return;
+  const a = el("bAmt").value;
+  if(!a||+a<=0) return toast("Invalid","Enter borrow amount","e");
+  try{
+    busy("bBtn",1);
+    const amtW = ethers.parseEther(a);
+    const colW = (amtW * 150n) / 100n;
+    const tx = await contract.borrow(amtW, {value: colW});
+    toast("Sent","Borrowing "+a+" MON...","i"); await tx.wait();
+    toast("Borrowed!",a+" MON ✅","s");
+    el("bAmt").value=""; calcCol(); await refreshAll();
+  }catch(e){ toast("Failed",parseErr(e),"e"); }
+  finally{ busy("bBtn",0); }
+}
+
+async function doRepay(){
+  if(!needW()) return;
+  try{
+    busy("rBtn",1);
+    const loan = await ethCall("getLoan",[wallet]);
+    const [,,,active,,totalOwed] = loan;
+    if(!active) return toast("No loan","No active loan to repay","e");
+    const buf = totalOwed * 1002n / 1000n; // 0.2% buffer for accrued interest
+    const tx = await contract.repay({value: buf});
+    toast("Sent","Repaying...","i"); await tx.wait();
+    toast("Repaid!","Collateral returned ✅","s");
+    await refreshAll();
+  }catch(e){ toast("Failed",parseErr(e),"e"); }
+  finally{ busy("rBtn",0); }
+}
+
+async function checkLiq(){
+  const addr = el("liqAddr").value.trim();
+  if(!addr||!window.ethereum) return;
+  try{
+    const [r] = await ethCall("isLiquidatable",[addr]);
+    el("liqSt").textContent = r ? "⚠️ YES — can liquidate!" : "✅ NO — healthy";
+    el("liqSt").style.color = r ? "var(--accent3)" : "var(--green)";
+  }catch{ el("liqSt").textContent = "invalid address"; }
+}
+
+async function doLiquidate(){
+  if(!needW()) return;
+  const addr = el("liqAddr").value.trim();
+  if(!addr) return toast("No address","Enter borrower address","e");
+  try{
+    busy("liqBtn",1);
+    const tx = await contract.liquidate(addr);
+    toast("Sent","Liquidating...","i"); await tx.wait();
+    toast("Done!","5% bonus earned ✅","s");
+    await refreshAll();
+  }catch(e){ toast("Failed",parseErr(e),"e"); }
+  finally{ busy("liqBtn",0); }
+}
+
+async function doWithdrawFees(){
+  if(!wallet) return;
+  try{
+    busy("wfBtn",1);
+    const tx = await contract.withdrawFees();
+    toast("Sent","Withdrawing fees...","i"); await tx.wait();
+    toast("Done!","Fees withdrawn 💰","s");
+    await refreshAll();
+  }catch(e){ toast("Failed",parseErr(e),"e"); }
+  finally{ busy("wfBtn",0); }
+}
+
+async function doPause(){
+  if(!wallet) return;
+  try{ const tx=await contract.pause(); await tx.wait(); toast("Paused","⏸ Protocol paused","i"); await refreshAll(); }
+  catch(e){ toast("Failed",parseErr(e),"e"); }
+}
+async function doUnpause(){
+  if(!wallet) return;
+  try{ const tx=await contract.unpause(); await tx.wait(); toast("Unpaused","▶ Protocol resumed","s"); await refreshAll(); }
+  catch(e){ toast("Failed",parseErr(e),"e"); }
+}
+
+// ── HELPERS ────────────────────────────────────────────────────
+function calcCol(){
+  const a = parseFloat(el("bAmt").value)||0;
+  el("rCol").textContent = (a*1.5).toFixed(4)+" MON";
+  el("oFee").textContent = (a*0.01).toFixed(4)+" MON";
+  el("yRcv").textContent = (a*0.99).toFixed(4)+" MON";
+}
+function needW(){
+  if(wallet) return true;
+  toast("Not connected","Connect your wallet first","e");
+  openModal(); return false;
+}
+function el(id){ return document.getElementById(id); }
+function fmt(w){ try{ const n=parseFloat(ethers.formatEther(w)); return n<0.001?n.toFixed(6):n.toFixed(4); }catch{ return "—"; } }
+function fmtR(w){ try{ return parseFloat(ethers.formatEther(w)).toFixed(4); }catch{ return "—"; } }
+function parseErr(e){
+  if(e.reason) return e.reason;
+  const m = e.message||"";
+  if(m.includes("GasBorrow:")) return m.split("GasBorrow:")[1].split('"')[0].trim();
+  if(m.includes("user rejected")||m.includes("User rejected")) return "Transaction rejected";
+  return m.slice(0,90)||"Unknown error";
+}
+function busy(id,on){
+  const b=el(id); if(!b)return;
+  b.disabled=!!on;
+  if(on){ b._o=b.innerHTML; b.innerHTML='<span class="sp"></span>Processing...'; }
+  else{ b.innerHTML=b._o||b.innerHTML; }
+}
+function toast(title,msg,type="i"){
+  const ic={s:"✅",e:"❌",i:"ℹ️"};
+  const tc={s:"ti-s",e:"ti-e",i:"ti-i"};
+  const d=document.createElement("div");
+  d.className="ti "+tc[type];
+  d.innerHTML=`<div style="margin-top:1px">${ic[type]}</div><div class="ti-body"><div class="ti-t">${title}</div><div style="color:var(--muted)">${msg}</div></div>`;
+  el("toast").appendChild(d);
+  setTimeout(()=>d.remove(), 6000);
+}
+
+window.onload = () => {
+  // Stats only available after wallet connect — no external RPC calls
+  // Auto-refresh every 30s if wallet connected
+  setInterval(()=>{ if(wallet) refreshAll(); }, 30000);
+};
+</script>
+</body>
+</html>
