@@ -154,4 +154,13 @@ This protocol is provided as-is. Always audit smart contracts before depositing 
 
 ---
 
+---
+
+<p align="center">
+  <b>☕ Support the Developer</b><br/><br/>
+  If GasBorrow helped you, consider sending a tip on Monad!<br/><br/>
+  <code>0x592B35c8917eD36c39Ef73D0F5e92B0173560b2e</code><br/><br/>
+  <img src="https://img.shields.io/badge/Donate%20MON-0x592B35...b2e-7B5BF5?style=for-the-badge&logo=ethereum"/>
+</p>
+
 <p align="center">Built with ❤️ on <b>Monad Network</b></p>
