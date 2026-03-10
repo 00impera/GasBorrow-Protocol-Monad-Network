@@ -4,426 +4,393 @@
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
 <title>GasBorrow — Monad Network</title>
-<link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Orbitron:wght@700;900&display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&family=Rajdhani:wght@500;600;700&display=swap" rel="stylesheet"/>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/ethers/6.7.0/ethers.umd.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/near-api-js@3.0.4/dist/near-api-js.min.js"></script>
 <style>
-/* ── NEON GREEN MATRIX THEME ── */
-:root{
-  --bg:#000000;
-  --bg2:#040804;
-  --border:#0a2a0a;
-  --border2:#0d3d0d;
-  --g:#00ff41;        /* neon green primary */
-  --g2:#00cc33;       /* slightly dimmer green */
-  --g3:#004d00;       /* dark green for fills */
-  --g4:#001a00;       /* near-black green for cards */
-  --g5:#39ff14;       /* electric lime accent */
-  --gdim:#00801f;     /* muted green */
-  --text:#c8ffca;     /* soft green-tinted white */
-  --muted:#2a6b2a;    /* dim green muted text */
-  --card:#020d02;     /* card background */
-  --near:#00ff41;
-  --red:#ff2244;      /* only for danger/liquidate */
-  --scanline:rgba(0,255,65,.03);
+:root {
+  --bg:       #020b18;
+  --bg2:      #041020;
+  --card:     #061525;
+  --card2:    #071830;
+  --b:        #0a2a4a;
+  --b2:       #0d3a60;
+  --b3:       #0f4878;
+  --cyan:     #00d4ff;
+  --cyan2:    #00aadd;
+  --cyan3:    #007aaa;
+  --cyandim:  #004466;
+  --blue:     #1a8fff;
+  --blue2:    #0066cc;
+  --electric: #40e0ff;
+  --text:     #cce8ff;
+  --text2:    #88b8d8;
+  --muted:    #2a5570;
+  --green:    #00ffaa;
+  --red:      #ff3355;
+  --orange:   #ff8800;
+  --glow:     rgba(0,212,255,.12);
+  --glow2:    rgba(0,212,255,.06);
 }
 *{margin:0;padding:0;box-sizing:border-box}
 
-/* Scanline effect */
-body{
-  background:var(--bg);
-  color:var(--text);
-  font-family:'Share Tech Mono',monospace;
-  min-height:100vh;
-  cursor:crosshair;
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: 'JetBrains Mono', monospace;
+  min-height: 100vh;
+  overflow-x: hidden;
 }
-body::before{
+
+/* Subtle grid bg */
+body::before {
   content:'';position:fixed;inset:0;
-  background:repeating-linear-gradient(0deg,transparent,transparent 2px,var(--scanline) 2px,var(--scanline) 4px);
-  z-index:0;pointer-events:none;animation:scan 8s linear infinite;
-}
-body::after{
-  content:'';position:fixed;inset:0;
-  background:radial-gradient(ellipse at 50% 50%,rgba(0,255,65,.04) 0%,transparent 70%);
+  background-image:
+    linear-gradient(rgba(0,180,255,.025) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(0,180,255,.025) 1px, transparent 1px);
+  background-size: 32px 32px;
   z-index:0;pointer-events:none;
 }
-@keyframes scan{0%{background-position:0 0}100%{background-position:0 100vh}}
 
-/* Matrix rain canvas */
-#matrix-canvas{position:fixed;top:0;left:0;width:100%;height:100%;z-index:0;opacity:.07;pointer-events:none}
+/* Top glow orb */
+body::after {
+  content:'';position:fixed;top:-200px;left:50%;transform:translateX(-50%);
+  width:800px;height:400px;
+  background:radial-gradient(ellipse, rgba(0,150,255,.08) 0%, transparent 70%);
+  z-index:0;pointer-events:none;
+}
 
-.wrap{max-width:1080px;margin:0 auto;padding:0 18px;position:relative;z-index:1}
+canvas#bg-canvas {
+  position:fixed;top:0;left:0;width:100%;height:100%;
+  z-index:0;opacity:.04;pointer-events:none;
+}
+
+.wrap{max-width:1100px;margin:0 auto;padding:0 16px;position:relative;z-index:1}
 
 /* ── HEADER ── */
-header{
-  border-bottom:1px solid var(--border2);
-  padding:12px 0;
-  position:sticky;top:0;z-index:100;
-  background:rgba(0,0,0,.95);
-  box-shadow:0 1px 0 var(--border2), 0 2px 20px rgba(0,255,65,.05);
+header {
+  border-bottom: 1px solid var(--b2);
+  background: rgba(2,11,24,.96);
+  backdrop-filter: blur(20px);
+  position: sticky;top:0;z-index:100;
+  box-shadow: 0 1px 0 var(--b2), 0 4px 30px rgba(0,150,255,.06);
 }
-.hdr{display:flex;align-items:center;justify-content:space-between;gap:10px}
-.logo{
+.hdr { display:flex;align-items:center;justify-content:space-between;gap:10px;padding:11px 0 }
+.logo {
   display:flex;align-items:center;gap:10px;
-  font-family:'Orbitron',monospace;font-size:1.1rem;font-weight:900;
-  letter-spacing:2px;text-decoration:none;
-  color:var(--g);text-shadow:0 0 10px var(--g),0 0 20px var(--g2);
+  font-family:'Rajdhani',sans-serif;font-size:1.3rem;font-weight:700;
+  letter-spacing:1px;color:var(--cyan);
+  text-shadow:0 0 16px var(--cyan),0 0 32px rgba(0,212,255,.3);
+  text-decoration:none;
 }
-.logo-box{
-  width:30px;height:30px;
-  border:1px solid var(--g);
-  display:flex;align-items:center;justify-content:center;font-size:14px;
-  box-shadow:0 0 8px var(--g),inset 0 0 8px rgba(0,255,65,.1);
-  animation:flicker 4s ease-in-out infinite;
+.logo-icon {
+  width:32px;height:32px;
+  background:linear-gradient(135deg,var(--cyan3),var(--blue2));
+  border:1px solid var(--cyan2);
+  display:flex;align-items:center;justify-content:center;
+  font-size:14px;
+  box-shadow:0 0 12px rgba(0,212,255,.3),inset 0 0 8px rgba(0,212,255,.1);
 }
-@keyframes flicker{0%,90%,100%{opacity:1}92%{opacity:.7}95%{opacity:1}97%{opacity:.8}}
-.logo span{color:var(--g5);text-shadow:0 0 12px var(--g5)}
-.hdr-r{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.logo span{color:var(--electric);text-shadow:0 0 10px var(--electric)}
 
-.badge-chain{
-  font-family:'Share Tech Mono',monospace;font-size:.65rem;
-  padding:4px 10px;
-  background:rgba(0,255,65,.04);
-  border:1px solid var(--border2);
-  color:var(--gdim);
-  display:flex;align-items:center;gap:5px;
-}
-.dot{width:6px;height:6px;background:var(--g);border-radius:50%;animation:blink 1.5s infinite;box-shadow:0 0 4px var(--g)}
-@keyframes blink{0%,100%{opacity:1;box-shadow:0 0 6px var(--g)}50%{opacity:.2;box-shadow:none}}
+.hdr-r{display:flex;align-items:center;gap:6px;flex-wrap:wrap}
 
-.badge-addr{
-  font-family:'Share Tech Mono',monospace;font-size:.65rem;
-  color:var(--g);background:rgba(0,255,65,.06);
-  border:1px solid var(--border2);
-  padding:3px 9px;display:none;
-  box-shadow:0 0 6px rgba(0,255,65,.1);
+.chip {
+  font-size:.62rem;padding:4px 9px;letter-spacing:.5px;
+  border:1px solid var(--b2);background:rgba(0,180,255,.04);color:var(--cyan3);
+  display:flex;align-items:center;gap:5px;white-space:nowrap;
 }
-.badge-near-id{
-  font-family:'Share Tech Mono',monospace;font-size:.65rem;
-  color:var(--g2);background:rgba(0,255,65,.05);
-  border:1px solid var(--border2);
-  padding:3px 9px;display:none;
-  align-items:center;gap:5px;
+.pulse {
+  width:6px;height:6px;border-radius:50%;background:var(--cyan);
+  box-shadow:0 0 6px var(--cyan);
+  animation:pulse 2s ease-in-out infinite;
 }
+@keyframes pulse{0%,100%{opacity:1;box-shadow:0 0 6px var(--cyan)}50%{opacity:.3;box-shadow:none}}
 
-.btn-conn{
-  border:1px solid var(--border2);
-  padding:8px 14px;
-  font-family:'Share Tech Mono',monospace;font-weight:400;font-size:.72rem;
+.badge-addr,.badge-near {
+  font-size:.62rem;color:var(--cyan);border:1px solid var(--b3);
+  background:rgba(0,180,255,.07);padding:3px 9px;display:none;
+  box-shadow:0 0 8px rgba(0,212,255,.08);
+}
+.badge-near{color:var(--electric)}
+
+.btn-hdr {
+  border:1px solid var(--b2);padding:7px 13px;
+  font-family:'JetBrains Mono',monospace;font-size:.68rem;
   cursor:pointer;transition:all .15s;
   display:flex;align-items:center;gap:6px;white-space:nowrap;
-  letter-spacing:.5px;
-  text-transform:uppercase;
-  background:rgba(0,255,65,.04);color:var(--gdim);
+  letter-spacing:.3px;text-transform:uppercase;
+  background:rgba(0,180,255,.04);color:var(--text2);
 }
-.btn-conn:hover{
-  background:rgba(0,255,65,.1);color:var(--g);
-  border-color:var(--g);
-  box-shadow:0 0 12px rgba(0,255,65,.2),inset 0 0 8px rgba(0,255,65,.05);
-}
-.btn-mm{border-color:#2a1800;color:#804000;background:rgba(255,120,0,.03)}
-.btn-mm:hover{border-color:#ff8800;color:#ff8800;background:rgba(255,136,0,.07);box-shadow:0 0 12px rgba(255,136,0,.15)}
-.btn-near{border-color:var(--border2);color:var(--gdim)}
-.btn-conn.ok{
-  background:rgba(0,255,65,.08);
-  border-color:var(--g2);
-  color:var(--g);
-  box-shadow:0 0 8px rgba(0,255,65,.15);
-}
+.btn-hdr:hover{background:rgba(0,180,255,.1);color:var(--cyan);border-color:var(--cyan2);box-shadow:0 0 14px rgba(0,212,255,.15)}
+.btn-mm{border-color:#2a1800;color:#806020;background:rgba(255,140,0,.03)}
+.btn-mm:hover{border-color:var(--orange);color:var(--orange);background:rgba(255,136,0,.06);box-shadow:0 0 12px rgba(255,136,0,.12)}
+.btn-hdr.ok{background:rgba(0,255,170,.07);border-color:rgba(0,255,170,.3);color:var(--green);box-shadow:0 0 8px rgba(0,255,170,.1)}
 
 /* ── MODAL ── */
-.overlay{position:fixed;inset:0;background:rgba(0,0,0,.92);z-index:200;display:none;align-items:center;justify-content:center}
+.overlay{position:fixed;inset:0;background:rgba(0,0,0,.88);z-index:200;display:none;align-items:center;justify-content:center}
 .overlay.on{display:flex}
 .modal{
-  background:#010801;
-  border:1px solid var(--g2);
-  padding:24px;max-width:420px;width:92%;
-  animation:pop .2s ease;position:relative;
-  box-shadow:0 0 40px rgba(0,255,65,.12),0 0 80px rgba(0,255,65,.04);
+  background:var(--card2);border:1px solid var(--b3);
+  padding:22px;max-width:400px;width:92%;
+  animation:fadeup .2s ease;position:relative;
+  box-shadow:0 0 50px rgba(0,180,255,.1),0 0 100px rgba(0,180,255,.04);
 }
-@keyframes pop{from{transform:scale(.94) translateY(10px);opacity:0}to{transform:scale(1) translateY(0);opacity:1}}
-.modal-x{position:absolute;top:12px;right:14px;background:none;border:none;color:var(--muted);font-size:1.1rem;cursor:pointer;font-family:'Share Tech Mono',monospace}
-.modal-x:hover{color:var(--g)}
-.modal h2{font-family:'Orbitron',monospace;font-size:.95rem;font-weight:700;color:var(--g);text-shadow:0 0 8px var(--g);letter-spacing:2px;margin-bottom:3px}
-.modal-sub{font-size:.63rem;color:var(--muted);margin-bottom:18px;letter-spacing:.5px}
+@keyframes fadeup{from{transform:translateY(12px);opacity:0}to{transform:translateY(0);opacity:1}}
+.modal-x{position:absolute;top:11px;right:13px;background:none;border:none;color:var(--muted);font-size:1rem;cursor:pointer;font-family:'JetBrains Mono',monospace}
+.modal-x:hover{color:var(--cyan)}
+.modal h2{font-family:'Rajdhani',sans-serif;font-size:1rem;font-weight:700;color:var(--cyan);letter-spacing:2px;text-transform:uppercase;margin-bottom:2px;text-shadow:0 0 8px rgba(0,212,255,.4)}
+.modal-sub{font-size:.6rem;color:var(--muted);margin-bottom:16px;letter-spacing:.5px}
 
 .wopt{
-  display:flex;align-items:center;gap:12px;
-  padding:11px 13px;
-  border:1px solid var(--border2);
-  margin-bottom:8px;cursor:pointer;
-  transition:all .15s;background:rgba(0,255,65,.02);
-  width:100%;text-align:left;color:var(--text);
+  display:flex;align-items:center;gap:11px;padding:10px 12px;
+  border:1px solid var(--b);margin-bottom:7px;cursor:pointer;
+  transition:all .14s;background:rgba(0,180,255,.02);width:100%;text-align:left;color:var(--text);
 }
-.wopt:hover{border-color:var(--g2);background:rgba(0,255,65,.06);color:var(--g);box-shadow:0 0 10px rgba(0,255,65,.08)}
-.wopt.near-opt:hover{border-color:var(--g);background:rgba(0,255,65,.07)}
-.wopt-ic{width:38px;height:38px;border:1px solid var(--border2);display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0;background:rgba(0,255,65,.04)}
-.wopt-name{font-size:.82rem;font-weight:400;letter-spacing:.5px}
-.wopt-sub{font-size:.6rem;color:var(--muted);margin-top:2px;letter-spacing:.3px}
-
-.near-panel{background:rgba(0,255,65,.02);border:1px solid var(--border2);padding:12px;margin-top:3px;display:none}
+.wopt:hover{border-color:var(--cyan2);background:rgba(0,180,255,.07);color:var(--cyan)}
+.wopt-ic{width:36px;height:36px;border:1px solid var(--b2);display:flex;align-items:center;justify-content:center;font-size:17px;flex-shrink:0;background:rgba(0,180,255,.04)}
+.wopt-name{font-size:.8rem;letter-spacing:.3px;font-family:'Rajdhani',sans-serif;font-weight:600}
+.wopt-sub{font-size:.58rem;color:var(--muted);margin-top:1px}
+.near-panel{background:rgba(0,180,255,.03);border:1px solid var(--b);padding:11px;margin-top:3px;display:none}
 .near-panel.show{display:block}
-.near-panel-title{font-size:.68rem;color:var(--g2);margin-bottom:8px;letter-spacing:1px;text-transform:uppercase}
-.near-wallet-opt{
-  display:flex;align-items:center;gap:10px;
-  padding:8px 10px;border:1px solid var(--border);
-  margin-bottom:6px;cursor:pointer;
-  background:rgba(0,255,65,.02);width:100%;text-align:left;color:var(--text);transition:all .13s;
-}
-.near-wallet-opt:hover{background:rgba(0,255,65,.07);border-color:var(--g2);color:var(--g)}
-.near-wallet-opt:last-child{margin-bottom:0}
-.near-w-ic{width:30px;height:30px;display:flex;align-items:center;justify-content:center;font-size:15px;background:rgba(0,255,65,.08);border:1px solid var(--border2)}
-.near-w-name{font-size:.8rem;letter-spacing:.3px}
-.near-w-sub{font-size:.58rem;color:var(--muted);margin-top:1px}
-.near-status{font-size:.62rem;color:var(--muted);background:rgba(0,0,0,.3);padding:8px 10px;margin-top:8px;line-height:1.7;border-left:2px solid var(--border2)}
-.near-status a{color:var(--g2);text-decoration:none}
-.near-status b{color:var(--text)}
-
-/* ── NEAR INFO CARD ── */
-.near-info-card{background:var(--card);border:1px solid var(--border2);padding:18px;margin-bottom:12px;display:none;box-shadow:0 0 20px rgba(0,255,65,.04)}
-.near-info-card.show{display:block}
-.nic-hdr{display:flex;align-items:center;gap:10px;margin-bottom:14px}
-.nic-badge{font-size:.58rem;padding:2px 8px;background:rgba(0,255,65,.08);border:1px solid var(--border2);color:var(--g2);letter-spacing:1px;text-transform:uppercase}
-.nic-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
-.nic-item label{font-size:.58rem;color:var(--muted);text-transform:uppercase;letter-spacing:.8px;display:block;margin-bottom:3px}
-.nic-item .val{font-size:.8rem;font-weight:400;color:var(--g);text-shadow:0 0 6px rgba(0,255,65,.3)}
-.near-evm-note{background:rgba(0,255,65,.03);border-left:2px solid var(--g3);padding:8px 11px;font-size:.6rem;color:var(--muted);margin-top:10px;line-height:1.6}
-.near-evm-note b{color:var(--g2)}
-
-/* ── NO-WALLET BANNER ── */
-.no-wallet-banner{
-  background:rgba(0,255,65,.03);
-  border:1px solid var(--border2);
-  border-left:3px solid var(--g3);
-  padding:12px 16px;text-align:center;margin-bottom:18px;
-  font-size:.72rem;color:var(--muted);letter-spacing:.5px;
-}
-.no-wallet-banner b{color:var(--g)}
+.near-panel-title{font-size:.62rem;color:var(--cyan2);margin-bottom:7px;letter-spacing:1px;text-transform:uppercase}
+.near-wopt{display:flex;align-items:center;gap:9px;padding:7px 9px;border:1px solid var(--b);margin-bottom:5px;cursor:pointer;background:none;width:100%;text-align:left;color:var(--text);transition:all .13s;font-family:'JetBrains Mono',monospace;font-size:.7rem}
+.near-wopt:hover{background:rgba(0,180,255,.07);border-color:var(--cyan2);color:var(--cyan)}
+.near-wopt:last-child{margin-bottom:0}
+.near-w-ic{width:28px;height:28px;display:flex;align-items:center;justify-content:center;font-size:14px;background:rgba(0,180,255,.07);border:1px solid var(--b2)}
+.near-status{font-size:.6rem;color:var(--muted);background:rgba(0,0,0,.3);padding:7px 9px;margin-top:7px;line-height:1.7;border-left:2px solid var(--b3)}
+.near-status a{color:var(--cyan2);text-decoration:none}
 
 /* ── HERO ── */
-.hero{padding:40px 0 20px;text-align:center}
+.hero{padding:30px 0 16px;text-align:center}
 .hero h1{
-  font-family:'Orbitron',monospace;
-  font-size:clamp(1.8rem,5vw,3.2rem);
-  font-weight:900;line-height:1.1;letter-spacing:2px;
-  color:var(--g);
-  text-shadow:0 0 20px var(--g),0 0 40px var(--g2),0 0 80px rgba(0,255,65,.2);
-  margin-bottom:10px;
-  animation:glitch 6s ease-in-out infinite;
+  font-family:'Rajdhani',sans-serif;
+  font-size:clamp(2rem,5vw,3rem);font-weight:700;
+  letter-spacing:1px;line-height:1.15;
+  color:var(--cyan);
+  text-shadow:0 0 24px var(--cyan),0 0 48px rgba(0,212,255,.25);
+  margin-bottom:8px;
 }
-@keyframes glitch{
-  0%,95%,100%{text-shadow:0 0 20px var(--g),0 0 40px var(--g2)}
-  96%{text-shadow:-2px 0 var(--red),2px 0 var(--g),0 0 20px var(--g)}
-  97%{text-shadow:2px 0 var(--red),-2px 0 var(--g5),0 0 20px var(--g)}
-  98%{text-shadow:0 0 20px var(--g),0 0 40px var(--g2)}
+.hero h1 em{color:var(--electric);font-style:normal;text-shadow:0 0 20px var(--electric)}
+.hero p{color:var(--muted);font-size:.7rem;letter-spacing:.8px}
+
+/* ── WALLET BANNER ── */
+.wallet-banner{
+  background:rgba(0,180,255,.04);border:1px solid var(--b2);
+  border-left:3px solid var(--cyan3);
+  padding:10px 14px;text-align:center;margin-bottom:14px;
+  font-size:.68rem;color:var(--muted);letter-spacing:.4px;
 }
-.hero p{color:var(--muted);font-size:.75rem;letter-spacing:1px}
+.wallet-banner b{color:var(--cyan)}
 
-/* ── STATS ── */
-.stats{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin:20px 0}
-.sc{
-  background:var(--card);
-  border:1px solid var(--border2);
-  padding:14px;transition:all .2s;
-  position:relative;overflow:hidden;
+/* ── STATS ROW ── */
+.stats{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin:14px 0}
+.stat{
+  background:var(--card);border:1px solid var(--b2);padding:13px 14px;
+  transition:all .18s;position:relative;overflow:hidden;cursor:default;
 }
-.sc::before{content:'';position:absolute;top:0;left:0;right:0;height:1px;background:linear-gradient(90deg,transparent,var(--g3),transparent);opacity:0;transition:.2s}
-.sc:hover{border-color:var(--g2);box-shadow:0 0 16px rgba(0,255,65,.08)}
-.sc:hover::before{opacity:1}
-.sc-label{font-size:.58rem;color:var(--muted);text-transform:uppercase;letter-spacing:1.5px;margin-bottom:8px}
-.sc-val{font-size:1.15rem;font-weight:400;color:var(--g);text-shadow:0 0 8px rgba(0,255,65,.4)}
-.sc-sub{font-size:.6rem;color:var(--muted);margin-top:4px;letter-spacing:.5px}
-.green-grad{color:var(--g5)!important;text-shadow:0 0 10px var(--g5)!important;background:none!important;-webkit-text-fill-color:unset!important}
-.pink-grad{color:var(--red)!important;text-shadow:0 0 8px rgba(255,34,68,.4)!important;background:none!important;-webkit-text-fill-color:unset!important}
-.near-grad{color:var(--g2)!important;text-shadow:0 0 8px rgba(0,204,51,.3)!important;background:none!important;-webkit-text-fill-color:unset!important}
-
-/* ── STATUS BOX ── */
-.status-box{background:var(--card);border:1px solid var(--border2);padding:16px;margin-bottom:12px}
-.sb-hdr{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px}
-.sb-title{font-size:.82rem;letter-spacing:1px;text-transform:uppercase;color:var(--g)}
-.loan-badge{font-size:.6rem;padding:2px 8px;letter-spacing:1px;text-transform:uppercase}
-.lb-none{background:rgba(255,255,255,.03);color:var(--muted);border:1px solid var(--border)}
-.lb-ok{background:rgba(0,255,65,.08);color:var(--g);border:1px solid var(--border2);text-shadow:0 0 6px rgba(0,255,65,.3)}
-.lb-risk{background:rgba(255,34,68,.08);color:var(--red);border:1px solid rgba(255,34,68,.25)}
-.sgrid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
-.si-label{font-size:.58rem;color:var(--muted);text-transform:uppercase;letter-spacing:.8px;margin-bottom:3px}
-.si-val{font-size:.82rem;color:var(--g);text-shadow:0 0 5px rgba(0,255,65,.2)}
-
-/* ── CARDS ── */
-.grid2{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px}
-.card{
-  background:var(--card);border:1px solid var(--border2);padding:16px;
-  transition:all .18s;position:relative;overflow:hidden;
+.stat::before{
+  content:'';position:absolute;top:0;left:0;right:0;height:2px;
+  background:linear-gradient(90deg,transparent,var(--cyan3),transparent);
+  opacity:0;transition:.2s;
 }
-.card::after{content:'';position:absolute;inset:0;pointer-events:none;background:linear-gradient(135deg,rgba(0,255,65,.015) 0%,transparent 60%);opacity:0;transition:.2s}
-.card:hover{border-color:var(--g2);box-shadow:0 0 20px rgba(0,255,65,.07)}
-.card:hover::after{opacity:1}
-.card-hdr{display:flex;align-items:center;gap:9px;margin-bottom:14px}
-.cic{width:32px;height:32px;border:1px solid var(--border2);display:flex;align-items:center;justify-content:center;font-size:14px;background:rgba(0,255,65,.04)}
-.cic-g,.cic-p,.cic-c,.cic-r,.cic-o,.cic-near{border-color:var(--border2)}
-.ctitle{font-size:.84rem;letter-spacing:.5px;color:var(--text)}
-.csub{font-size:.6rem;color:var(--muted);margin-top:2px;letter-spacing:.3px}
+.stat:hover{border-color:var(--cyan2);box-shadow:0 0 20px var(--glow)}
+.stat:hover::before{opacity:1}
+.stat-lbl{font-size:.56rem;color:var(--muted);text-transform:uppercase;letter-spacing:1.2px;margin-bottom:6px}
+.stat-val{font-size:1.1rem;font-weight:500;color:var(--cyan);text-shadow:0 0 8px rgba(0,212,255,.35);line-height:1}
+.stat-sub{font-size:.57rem;color:var(--muted);margin-top:4px;letter-spacing:.3px}
+.val-green{color:var(--green)!important;text-shadow:0 0 8px rgba(0,255,170,.3)!important}
+.val-red{color:var(--red)!important;text-shadow:0 0 8px rgba(255,51,85,.3)!important}
+.val-blue{color:var(--blue)!important;text-shadow:0 0 8px rgba(26,143,255,.3)!important}
 
-.ig{margin-bottom:10px}
-.ilabel{font-size:.6rem;color:var(--muted);text-transform:uppercase;letter-spacing:.8px;margin-bottom:4px;display:block}
+/* ── STATUS BAR ── */
+.status-bar{
+  background:var(--card);border:1px solid var(--b2);
+  padding:13px 15px;margin-bottom:10px;
+}
+.sb-top{display:flex;align-items:center;justify-content:space-between;margin-bottom:11px}
+.sb-title{font-family:'Rajdhani',sans-serif;font-size:.82rem;font-weight:600;letter-spacing:1.5px;text-transform:uppercase;color:var(--cyan2)}
+.lbadge{font-size:.58rem;padding:2px 8px;letter-spacing:.8px;text-transform:uppercase;border:1px solid;font-family:'JetBrains Mono',monospace}
+.lb-none{color:var(--muted);border-color:var(--b2);background:rgba(255,255,255,.02)}
+.lb-ok{color:var(--green);border-color:rgba(0,255,170,.25);background:rgba(0,255,170,.06)}
+.lb-risk{color:var(--red);border-color:rgba(255,51,85,.25);background:rgba(255,51,85,.06)}
+.sb-grid{display:grid;grid-template-columns:repeat(6,1fr);gap:8px}
+.sb-item .lbl{font-size:.55rem;color:var(--muted);text-transform:uppercase;letter-spacing:.7px;margin-bottom:3px}
+.sb-item .val{font-size:.78rem;color:var(--text2)}
+
+/* ── CARD GRID ── */
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px}
+.card{background:var(--card);border:1px solid var(--b2);padding:14px;transition:border-color .18s}
+.card:hover{border-color:var(--b3)}
+.c-hdr{display:flex;align-items:center;gap:8px;margin-bottom:12px;padding-bottom:10px;border-bottom:1px solid var(--b)}
+.c-icon{
+  width:30px;height:30px;border:1px solid var(--b3);
+  display:flex;align-items:center;justify-content:center;font-size:13px;
+  background:rgba(0,180,255,.06);flex-shrink:0;
+}
+.c-title{font-family:'Rajdhani',sans-serif;font-size:.85rem;font-weight:600;letter-spacing:.5px;color:var(--text)}
+.c-sub{font-size:.57rem;color:var(--muted);margin-top:1px;letter-spacing:.2px}
+
+/* FORM ELEMENTS */
+.fg{margin-bottom:9px}
+.flabel{font-size:.57rem;color:var(--muted);text-transform:uppercase;letter-spacing:.6px;margin-bottom:3px;display:block}
 .iw{position:relative}
-input{
-  width:100%;
-  background:rgba(0,255,65,.03);
-  border:1px solid var(--border2);
-  padding:9px 46px 9px 11px;
-  color:var(--g);
-  font-family:'Share Tech Mono',monospace;font-size:.78rem;
-  outline:none;transition:border-color .15s;
-  caret-color:var(--g);
+input[type="number"],input[type="text"]{
+  width:100%;background:rgba(0,180,255,.04);border:1px solid var(--b2);
+  padding:8px 40px 8px 10px;color:var(--cyan);
+  font-family:'JetBrains Mono',monospace;font-size:.74rem;
+  outline:none;transition:all .14s;caret-color:var(--cyan);
 }
-input:focus{border-color:var(--g2);background:rgba(0,255,65,.05);box-shadow:0 0 8px rgba(0,255,65,.08)}
-input::placeholder{color:var(--muted)}
-.itag{position:absolute;right:9px;top:50%;transform:translateY(-50%);font-size:.56rem;color:var(--muted);font-family:'Share Tech Mono',monospace;background:#010801;padding:2px 5px;border:1px solid var(--border)}
+input:focus{border-color:var(--cyan2);background:rgba(0,180,255,.07);box-shadow:0 0 10px var(--glow2)}
+input::placeholder{color:var(--b3)}
+.itag{
+  position:absolute;right:7px;top:50%;transform:translateY(-50%);
+  font-size:.54rem;color:var(--muted);background:var(--bg2);
+  padding:2px 5px;border:1px solid var(--b);letter-spacing:.3px;
+}
 
+/* INFO BOX */
 .ibox{
-  background:rgba(0,255,65,.02);border:1px solid var(--border);
-  padding:9px 11px;font-size:.64rem;color:var(--muted);
-  margin-bottom:10px;display:flex;flex-direction:column;gap:5px;
-  border-left:2px solid var(--g3);
+  background:rgba(0,180,255,.03);border:1px solid var(--b);
+  border-left:2px solid var(--cyan3);
+  padding:8px 10px;font-size:.62rem;color:var(--muted);
+  margin-bottom:9px;display:flex;flex-direction:column;gap:4px;
 }
-.ibox-near{border-left-color:var(--g2)}
-.ir{display:flex;justify-content:space-between}
-.iv{color:var(--g2)}
-.iv-near{color:var(--g)!important}
+.ir{display:flex;justify-content:space-between;align-items:center}
+.iv{color:var(--cyan2)}
 
-/* ── BUTTONS ── */
+/* BUTTONS */
 .btn{
-  width:100%;padding:10px;border:1px solid var(--border2);
-  font-family:'Share Tech Mono',monospace;font-weight:400;font-size:.78rem;
-  cursor:pointer;transition:all .15s;
-  text-transform:uppercase;letter-spacing:1px;
-  background:rgba(0,255,65,.04);color:var(--gdim);
+  width:100%;padding:9px;border:1px solid var(--b2);
+  font-family:'JetBrains Mono',monospace;font-size:.72rem;
+  cursor:pointer;transition:all .14s;
+  text-transform:uppercase;letter-spacing:.8px;
+  background:rgba(0,180,255,.05);color:var(--text2);
 }
-.btn:hover{background:rgba(0,255,65,.1);color:var(--g);border-color:var(--g2);box-shadow:0 0 14px rgba(0,255,65,.15)}
+.btn:hover{background:rgba(0,180,255,.12);color:var(--cyan);border-color:var(--cyan2);box-shadow:0 0 16px var(--glow)}
+.btn-primary{
+  background:rgba(0,180,255,.1);border-color:var(--cyan2);color:var(--cyan);
+  box-shadow:inset 0 0 12px rgba(0,212,255,.05);
+}
+.btn-primary:hover{background:rgba(0,180,255,.2);box-shadow:0 0 22px rgba(0,212,255,.2);text-shadow:0 0 8px var(--cyan)}
+.btn-accent{background:rgba(26,143,255,.08);border-color:var(--blue2);color:var(--blue)}
+.btn-accent:hover{background:rgba(26,143,255,.16);border-color:var(--blue);color:#66aaff;box-shadow:0 0 16px rgba(26,143,255,.18)}
+.btn-green{background:rgba(0,255,170,.06);border-color:rgba(0,255,170,.2);color:var(--green)}
+.btn-green:hover{background:rgba(0,255,170,.12);border-color:var(--green);box-shadow:0 0 16px rgba(0,255,170,.15)}
+.btn-danger{background:rgba(255,51,85,.06);border-color:rgba(255,51,85,.2);color:#ff6688}
+.btn-danger:hover{background:rgba(255,51,85,.12);border-color:var(--red);color:var(--red);box-shadow:0 0 16px rgba(255,51,85,.15)}
+.btn-ghost{background:transparent;border-color:var(--b);color:var(--muted)}
+.btn-ghost:hover{border-color:var(--cyan2);color:var(--text2)}
+.btn:disabled{opacity:.25;cursor:not-allowed;box-shadow:none!important;transform:none!important}
+.btn-sm{width:auto;padding:4px 10px;font-size:.62rem}
 
-.btn-g{background:rgba(0,255,65,.08);border-color:var(--g2);color:var(--g);box-shadow:inset 0 0 10px rgba(0,255,65,.05)}
-.btn-g:hover{background:rgba(0,255,65,.16);box-shadow:0 0 20px rgba(0,255,65,.25),inset 0 0 10px rgba(0,255,65,.08);text-shadow:0 0 8px var(--g)}
-
-.btn-p{background:rgba(0,255,65,.05);border-color:var(--g3);color:var(--g2)}
-.btn-p:hover{background:rgba(0,255,65,.12);border-color:var(--g);color:var(--g);box-shadow:0 0 18px rgba(0,255,65,.2)}
-
-.btn-c{background:rgba(0,255,65,.04);border-color:var(--border2);color:var(--g2)}
-.btn-c:hover{background:rgba(0,255,65,.1);border-color:var(--g2);color:var(--g);box-shadow:0 0 14px rgba(0,255,65,.15)}
-
-.btn-r{background:rgba(255,34,68,.06);border-color:rgba(255,34,68,.25);color:#ff4466}
-.btn-r:hover{background:rgba(255,34,68,.12);border-color:#ff2244;color:#ff2244;box-shadow:0 0 16px rgba(255,34,68,.2)}
-
-.btn-near-style{background:rgba(0,255,65,.07);border-color:var(--g3);color:var(--g2)}
-.btn-near-style:hover{background:rgba(0,255,65,.13);border-color:var(--g);color:var(--g);box-shadow:0 0 14px rgba(0,255,65,.15)}
-
-.btn-ol{background:transparent;border:1px solid var(--border);color:var(--muted)}
-.btn-ol:hover{border-color:var(--g2);color:var(--g)}
-.btn:disabled{opacity:.25;cursor:not-allowed;transform:none!important;box-shadow:none!important}
-.btn-sm{width:auto;padding:4px 11px;font-size:.65rem}
-
-.dvd{height:1px;background:var(--border);margin:12px 0}
+.dvd{height:1px;background:var(--b);margin:10px 0}
 .full{grid-column:1/-1}
-.row2{display:flex;gap:7px}
-
-.sp{display:inline-block;width:10px;height:10px;border:1px solid rgba(0,255,65,.3);border-top-color:var(--g);border-radius:50%;animation:spin .6s linear infinite;vertical-align:middle;margin-right:6px}
+.row2{display:flex;gap:6px}
+.sp{
+  display:inline-block;width:10px;height:10px;
+  border:1px solid rgba(0,212,255,.25);border-top-color:var(--cyan);
+  border-radius:50%;animation:spin .6s linear infinite;
+  vertical-align:middle;margin-right:6px;
+}
 @keyframes spin{to{transform:rotate(360deg)}}
 
-/* ── TOAST ── */
-#toast{position:fixed;bottom:20px;right:20px;z-index:999;max-width:300px}
+/* NEAR INFO CARD */
+.near-card{background:var(--card);border:1px solid var(--b2);padding:14px;margin-bottom:10px;display:none}
+.near-card.show{display:block;border-color:var(--cyan3)}
+.nc-hdr{display:flex;align-items:center;gap:9px;margin-bottom:11px}
+.nc-badge{font-size:.56rem;padding:2px 7px;background:rgba(0,212,255,.07);border:1px solid var(--b3);color:var(--cyan2);letter-spacing:1px;text-transform:uppercase;margin-left:auto}
+.nc-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.nc-item label{font-size:.55rem;color:var(--muted);text-transform:uppercase;letter-spacing:.6px;display:block;margin-bottom:2px}
+.nc-item .val{font-size:.76rem;color:var(--cyan);word-break:break-all}
+.nc-note{background:rgba(0,180,255,.04);border-left:2px solid var(--b3);padding:7px 10px;font-size:.59rem;color:var(--muted);margin-top:9px;line-height:1.7}
+.nc-note b{color:var(--cyan2)}
+.nc-note a{color:var(--cyan2);text-decoration:none}
+
+/* OWNER PANEL */
+#ownerPanel{display:none}
+#ownerPanel.show{display:block}
+
+/* TOAST */
+#toast{position:fixed;bottom:18px;right:18px;z-index:999;max-width:280px}
 .ti{
-  background:#010801;border:1px solid var(--border2);
-  padding:11px 13px;font-size:.68rem;margin-top:7px;
-  display:flex;gap:9px;animation:sli .22s ease;
-  box-shadow:0 8px 30px rgba(0,0,0,.8);
+  background:var(--card2);border:1px solid var(--b2);
+  padding:10px 12px;font-size:.65rem;margin-top:6px;
+  display:flex;gap:8px;animation:slideIn .2s ease;
+  box-shadow:0 8px 30px rgba(0,0,0,.7);
 }
-.ti-s{border-color:var(--g2);box-shadow:0 0 12px rgba(0,255,65,.1)}
-.ti-e{border-color:rgba(255,34,68,.4);box-shadow:0 0 12px rgba(255,34,68,.08)}
-.ti-i{border-color:var(--border2)}
-.ti-n{border-color:var(--g3);box-shadow:0 0 10px rgba(0,255,65,.08)}
+.ti-s{border-color:rgba(0,255,170,.3)}
+.ti-e{border-color:rgba(255,51,85,.35)}
+.ti-i{border-color:var(--b3)}
+.ti-n{border-color:var(--cyan3)}
 .ti-body{flex:1;line-height:1.5}
-.ti-t{font-weight:400;margin-bottom:1px;color:var(--g);letter-spacing:.5px;text-transform:uppercase;font-size:.65rem}
-@keyframes sli{from{transform:translateX(60px);opacity:0}to{transform:translateX(0);opacity:1}}
+.ti-t{color:var(--cyan);letter-spacing:.4px;text-transform:uppercase;font-size:.6rem;margin-bottom:2px}
+.ti-msg{color:var(--muted)}
+@keyframes slideIn{from{transform:translateX(50px);opacity:0}to{transform:translateX(0);opacity:1}}
 
+/* FOOTER */
 footer{
-  border-top:1px solid var(--border);padding:14px 0;margin-top:12px;
-  text-align:center;font-size:.6rem;color:var(--muted);letter-spacing:.5px;
+  border-top:1px solid var(--b);padding:12px 0;margin-top:10px;
+  text-align:center;font-size:.58rem;color:var(--muted);letter-spacing:.3px;
 }
-footer a{color:var(--g2);text-decoration:none}
-footer a:hover{color:var(--g);text-shadow:0 0 6px var(--g)}
+footer a{color:var(--cyan2);text-decoration:none}
+footer a:hover{color:var(--cyan)}
 
-/* Scrollbar */
+/* SCROLLBAR */
 ::-webkit-scrollbar{width:4px}
-::-webkit-scrollbar-track{background:#010801}
-::-webkit-scrollbar-thumb{background:var(--g3);border-radius:0}
-::-webkit-scrollbar-thumb:hover{background:var(--g2)}
+::-webkit-scrollbar-track{background:var(--bg)}
+::-webkit-scrollbar-thumb{background:var(--b3)}
+::-webkit-scrollbar-thumb:hover{background:var(--cyan3)}
 
-@media(max-width:720px){.stats{grid-template-columns:1fr 1fr}.grid2{grid-template-columns:1fr}.sgrid{grid-template-columns:1fr 1fr}.nic-grid{grid-template-columns:1fr 1fr}}
-@media(max-width:440px){.stats{grid-template-columns:1fr}.sgrid{grid-template-columns:1fr}.hdr-r{gap:5px}.nic-grid{grid-template-columns:1fr}}
+@media(max-width:760px){
+  .stats{grid-template-columns:1fr 1fr}
+  .grid2{grid-template-columns:1fr}
+  .sb-grid{grid-template-columns:repeat(3,1fr)}
+  .nc-grid{grid-template-columns:1fr 1fr}
+}
+@media(max-width:460px){
+  .stats{grid-template-columns:1fr 1fr}
+  .sb-grid{grid-template-columns:1fr 1fr}
+  .hdr-r{gap:4px}
+  .logo{font-size:1.1rem}
+}
 </style>
 </head>
 <body>
-<canvas id="matrix-canvas"></canvas>
+<canvas id="bg-canvas"></canvas>
 
-<!-- WALLET MODAL -->
+<!-- MODAL -->
 <div class="overlay" id="overlay">
   <div class="modal">
     <button class="modal-x" onclick="closeModal()">✕</button>
     <h2>Connect Wallet</h2>
-    <div class="modal-sub">// Select wallet · Monad Network (Chain 143)</div>
+    <div class="modal-sub">// Select wallet · Monad Network · Chain 143</div>
 
     <button class="wopt" onclick="connectMM()">
-      <div class="wopt-ic" style="background:rgba(232,131,26,.13);border:1px solid rgba(232,131,26,.3)">🦊</div>
-      <div><div class="wopt-name">MetaMask</div><div class="wopt-sub">EVM wallet · Recommended</div></div>
-      <span style="margin-left:auto;color:var(--muted)">→</span>
+      <div class="wopt-ic">🦊</div>
+      <div><div class="wopt-name">MetaMask</div><div class="wopt-sub">EVM · Recommended</div></div>
+      <span style="margin-left:auto;color:var(--muted);font-size:.7rem">→</span>
     </button>
 
-    <button class="wopt near-opt" onclick="toggleNearPanel()">
-      <div class="wopt-ic" style="background:rgba(0,193,222,.13);border:1px solid rgba(0,193,222,.3)">🔷</div>
+    <button class="wopt" onclick="toggleNearPanel()">
+      <div class="wopt-ic">🔷</div>
       <div><div class="wopt-name">NEAR Wallet</div><div class="wopt-sub">MyNearWallet · Sender · Meteor · HERE</div></div>
-      <span style="margin-left:auto;color:var(--muted)" id="nearArrow">→</span>
+      <span style="margin-left:auto;color:var(--muted);font-size:.7rem" id="nearArrow">→</span>
     </button>
 
-    <!-- NEAR Sub-panel -->
     <div class="near-panel" id="nearPanel">
-      <div class="near-panel-title">🔷 SELECT NEAR WALLET</div>
-
-      <button class="near-wallet-opt" onclick="connectNEAR('mynearwallet')">
-        <div class="near-w-ic">🌐</div>
-        <div><div class="near-w-name">MyNearWallet</div><div class="near-w-sub">app.mynearwallet.com · Web wallet</div></div>
-        <span style="margin-left:auto;color:var(--near);font-size:.7rem">→</span>
-      </button>
-
-      <button class="near-wallet-opt" onclick="connectNEAR('sender')">
-        <div class="near-w-ic">📡</div>
-        <div><div class="near-w-name">Sender Wallet</div><div class="near-w-sub">Extension · NEAR + EVM bridge</div></div>
-        <span style="margin-left:auto;color:var(--near);font-size:.7rem">→</span>
-      </button>
-
-      <button class="near-wallet-opt" onclick="connectNEAR('meteor')">
-        <div class="near-w-ic">☄️</div>
-        <div><div class="near-w-name">Meteor Wallet</div><div class="near-w-sub">Extension · meteornear.io</div></div>
-        <span style="margin-left:auto;color:var(--near);font-size:.7rem">→</span>
-      </button>
-
-      <button class="near-wallet-opt" onclick="connectNEAR('here')">
-        <div class="near-w-ic">📱</div>
-        <div><div class="near-w-name">HERE Wallet</div><div class="near-w-sub">Mobile · herewallet.app</div></div>
-        <span style="margin-left:auto;color:var(--near);font-size:.7rem">→</span>
-      </button>
-
-      <div class="near-status">
-        <b>How NEAR connects to Monad:</b><br/>
-        NEAR wallets with EVM support (Sender) connect directly.<br/>
-        Others use <a href="https://rainbowbridge.app" target="_blank">Rainbow Bridge</a> to wrap NEAR→ETH.<br/>
-        Your NEAR account maps to an EVM address automatically.
-      </div>
+      <div class="near-panel-title">Select NEAR wallet</div>
+      <button class="near-wopt" onclick="connectNEAR('mynearwallet')"><div class="near-w-ic">🌐</div><div><div style="font-size:.76rem">MyNearWallet</div><div style="font-size:.57rem;color:var(--muted)">app.mynearwallet.com</div></div><span style="margin-left:auto;color:var(--cyan2);font-size:.65rem">→</span></button>
+      <button class="near-wopt" onclick="connectNEAR('sender')"><div class="near-w-ic">📡</div><div><div style="font-size:.76rem">Sender Wallet</div><div style="font-size:.57rem;color:var(--muted)">Extension · NEAR+EVM</div></div><span style="margin-left:auto;color:var(--cyan2);font-size:.65rem">→</span></button>
+      <button class="near-wopt" onclick="connectNEAR('meteor')"><div class="near-w-ic">☄️</div><div><div style="font-size:.76rem">Meteor Wallet</div><div style="font-size:.57rem;color:var(--muted)">meteornear.io</div></div><span style="margin-left:auto;color:var(--cyan2);font-size:.65rem">→</span></button>
+      <button class="near-wopt" onclick="connectNEAR('here')"><div class="near-w-ic">📱</div><div><div style="font-size:.76rem">HERE Wallet</div><div style="font-size:.57rem;color:var(--muted)">Mobile · herewallet.app</div></div><span style="margin-left:auto;color:var(--cyan2);font-size:.65rem">→</span></button>
+      <div class="near-status">NEAR wallets with EVM support (Sender) connect directly.<br/>Others use <a href="https://rainbowbridge.app" target="_blank">Rainbow Bridge</a> to bridge to Monad.</div>
     </div>
 
-    <button class="wopt" onclick="connectAny()" style="margin-top:9px">
-      <div class="wopt-ic" style="background:rgba(123,91,245,.13);border:1px solid rgba(123,91,245,.3)">🔗</div>
+    <button class="wopt" onclick="connectAny()" style="margin-top:7px">
+      <div class="wopt-ic">🔗</div>
       <div><div class="wopt-name">Any EVM Wallet</div><div class="wopt-sub">Rabby · Trust · Coinbase · Phantom</div></div>
-      <span style="margin-left:auto;color:var(--muted)">→</span>
+      <span style="margin-left:auto;color:var(--muted);font-size:.7rem">→</span>
     </button>
   </div>
 </div>
@@ -432,184 +399,211 @@ footer a:hover{color:var(--g);text-shadow:0 0 6px var(--g)}
 <header>
   <div class="wrap">
     <div class="hdr">
-      <div class="logo">⛽ Gas<span>Borrow</span></div>
+      <div class="logo">
+        <div class="logo-icon">⛽</div>
+        Gas<span>Borrow</span>
+      </div>
       <div class="hdr-r">
-        <div class="badge-chain"><span class="dot"></span>Monad #143</div>
-        <!-- NEAR account ID badge -->
-        <div class="badge-near-id" id="nearIdBadge">🔷 <span id="nearIdText"></span></div>
-        <!-- EVM address badge -->
+        <div class="chip"><span class="pulse"></span>MONAD #143</div>
+        <div class="badge-near" id="nearIdBadge"><span id="nearIdText"></span></div>
         <div class="badge-addr" id="addrBadge"></div>
-        <button class="btn-conn btn-mm"   id="mmBtn"   onclick="openModal()">🦊 MetaMask</button>
-        <button class="btn-conn btn-near" id="nearBtn" onclick="openModal()">🔷 NEAR</button>
+        <button class="btn-hdr btn-mm" id="mmBtn" onclick="openModal()">🦊 MetaMask</button>
+        <button class="btn-hdr" id="nearBtn" onclick="openModal()">🔷 NEAR</button>
       </div>
     </div>
   </div>
 </header>
 
 <div class="wrap">
+
+  <!-- HERO -->
   <div class="hero">
-    <h1>Borrow Gas.<br/>Earn Yield.</h1>
-    <p>// Decentralized MON lending on Monad · 10% APR · 5% APY · 1% fee</p>
+    <h1>Borrow Gas. <em>Earn Yield.</em></h1>
+    <p>// Decentralized MON lending on Monad &nbsp;·&nbsp; 10% APR &nbsp;·&nbsp; 5% APY &nbsp;·&nbsp; 1% fee</p>
   </div>
 
-  <!-- NO WALLET BANNER -->
-  <div class="no-wallet-banner" id="noWalletBanner">
+  <!-- WALLET BANNER -->
+  <div class="wallet-banner" id="noWalletBanner">
     ⚡ <b>Connect your wallet</b> to view live stats and interact with the protocol
   </div>
 
-  <!-- NEAR ACCOUNT CARD (shown when NEAR connected) -->
-  <div class="near-info-card" id="nearInfoCard">
-    <div class="nic-hdr">
-      <div class="cic cic-near">🔷</div>
+  <!-- NEAR INFO CARD -->
+  <div class="near-card" id="nearInfoCard">
+    <div class="nc-hdr">
+      <div class="c-icon">🔷</div>
       <div>
-        <div class="ctitle">NEAR Account Connected</div>
-        <div class="csub" id="nearWalletType">near wallet</div>
+        <div class="c-title">NEAR Account</div>
+        <div class="c-sub" id="nearWalletType">near wallet</div>
       </div>
-      <div class="nic-badge" style="margin-left:auto">NEAR PROTOCOL</div>
+      <div class="nc-badge">NEAR PROTOCOL</div>
     </div>
-    <div class="nic-grid">
-      <div class="nic-item">
-        <label>Account ID</label>
-        <div class="val" id="nicAccountId">—</div>
-      </div>
-      <div class="nic-item">
-        <label>NEAR Balance</label>
-        <div class="val" id="nicBalance">—</div>
-      </div>
-      <div class="nic-item">
-        <label>EVM Address</label>
-        <div class="val" style="font-size:.68rem;word-break:break-all" id="nicEvmAddr">—</div>
-      </div>
-      <div class="nic-item">
-        <label>Network</label>
-        <div class="val" id="nicNetwork">mainnet</div>
-      </div>
-      <div class="nic-item">
-        <label>Staking APY</label>
-        <div class="val near-grad">~10.5%</div>
-      </div>
-      <div class="nic-item">
-        <label>Status</label>
-        <div class="val" style="color:var(--green)" id="nicStatus">Active</div>
-      </div>
+    <div class="nc-grid">
+      <div class="nc-item"><label>Account ID</label><div class="val" id="nicAccountId">—</div></div>
+      <div class="nc-item"><label>Balance</label><div class="val" id="nicBalance">—</div></div>
+      <div class="nc-item"><label>EVM Address</label><div class="val" style="font-size:.62rem" id="nicEvmAddr">—</div></div>
+      <div class="nc-item"><label>Network</label><div class="val" id="nicNetwork">mainnet</div></div>
+      <div class="nc-item"><label>Staking APY</label><div class="val val-green">~10.5%</div></div>
+      <div class="nc-item"><label>Status</label><div class="val val-green" id="nicStatus">Active</div></div>
     </div>
-    <div class="near-evm-note">
-      <b>🔗 EVM Bridge:</b> Your NEAR account is bridged to an EVM-compatible address via Sender Wallet or Aurora.
-      Use <a href="https://rainbowbridge.app" target="_blank" style="color:var(--near)">Rainbow Bridge</a> to move assets.
-      MON gas borrowed here is sent to your EVM address.
+    <div class="nc-note">
+      <b>EVM Bridge:</b> Your NEAR account bridges to EVM via Sender or Aurora.
+      Use <a href="https://rainbowbridge.app" target="_blank">Rainbow Bridge</a> to move assets.
+      Borrowed MON is sent to your EVM address.
     </div>
   </div>
 
   <!-- STATS -->
   <div class="stats">
-    <div class="sc"><div class="sc-label">Total Liquidity</div><div class="sc-val" id="sLiq">—</div><div class="sc-sub">MON available</div></div>
-    <div class="sc"><div class="sc-label">Exchange Rate</div><div class="sc-val" id="sRate">—</div><div class="sc-sub">MON per share</div></div>
-    <div class="sc"><div class="sc-label">Borrow APR</div><div class="sc-val pink-grad">10%</div><div class="sc-sub">annual rate</div></div>
-    <div class="sc"><div class="sc-label">Lender APY</div><div class="sc-val green-grad">5%</div><div class="sc-sub">annual yield</div></div>
+    <div class="stat">
+      <div class="stat-lbl">Total Liquidity</div>
+      <div class="stat-val" id="sLiq">—</div>
+      <div class="stat-sub">MON available</div>
+    </div>
+    <div class="stat">
+      <div class="stat-lbl">Exchange Rate</div>
+      <div class="stat-val" id="sRate">—</div>
+      <div class="stat-sub">MON per share</div>
+    </div>
+    <div class="stat">
+      <div class="stat-lbl">Borrow APR</div>
+      <div class="stat-val val-red">10%</div>
+      <div class="stat-sub">annual rate</div>
+    </div>
+    <div class="stat">
+      <div class="stat-lbl">Lender APY</div>
+      <div class="stat-val val-green">5%</div>
+      <div class="stat-sub">annual yield</div>
+    </div>
   </div>
 
   <!-- MY STATUS -->
-  <div class="status-box">
-    <div class="sb-hdr">
-      <div style="display:flex;align-items:center;gap:9px">
+  <div class="status-bar">
+    <div class="sb-top">
+      <div style="display:flex;align-items:center;gap:8px">
         <div class="sb-title">My Status</div>
-        <div class="loan-badge lb-none" id="lBadge">NOT CONNECTED</div>
+        <div class="lbadge lb-none" id="lBadge">NOT CONNECTED</div>
       </div>
-      <button class="btn btn-ol btn-sm" onclick="refreshAll()">↻ Refresh</button>
+      <button class="btn btn-ghost btn-sm" onclick="refreshAll()">↻ Refresh</button>
     </div>
-    <div class="sgrid">
-      <div><div class="si-label">Principal</div><div class="si-val" id="lPrin">—</div></div>
-      <div><div class="si-label">Collateral Locked</div><div class="si-val" id="lCol">—</div></div>
-      <div><div class="si-label">Total Owed</div><div class="si-val" id="lOwed" style="color:var(--accent3)">—</div></div>
-      <div><div class="si-label">My Shares</div><div class="si-val" id="mShares">—</div></div>
-      <div><div class="si-label">My Pool Value</div><div class="si-val" id="mVal" style="color:var(--green)">—</div></div>
-      <div><div class="si-label">Wallet</div><div class="si-val" id="wLabel" style="color:var(--accent2)">—</div></div>
+    <div class="sb-grid">
+      <div class="sb-item"><div class="lbl">Principal</div><div class="val" id="lPrin">—</div></div>
+      <div class="sb-item"><div class="lbl">Collateral Locked</div><div class="val" id="lCol">—</div></div>
+      <div class="sb-item"><div class="lbl">Total Owed</div><div class="val" style="color:var(--red)" id="lOwed">—</div></div>
+      <div class="sb-item"><div class="lbl">My Shares</div><div class="val" id="mShares">—</div></div>
+      <div class="sb-item"><div class="lbl">Pool Value</div><div class="val" style="color:var(--green)" id="mVal">—</div></div>
+      <div class="sb-item"><div class="lbl">Wallet</div><div class="val" style="color:var(--cyan2)" id="wLabel">—</div></div>
     </div>
   </div>
 
+  <!-- CARDS -->
   <div class="grid2">
+
     <!-- DEPOSIT -->
     <div class="card">
-      <div class="card-hdr"><div class="cic cic-g">💰</div><div><div class="ctitle">Deposit & Earn</div><div class="csub">5% APY · share-based pool</div></div></div>
-      <div class="ig"><label class="ilabel">Deposit Amount</label><div class="iw"><input type="number" id="dAmt" placeholder="0.0" min="0" step="0.01"/><span class="itag">MON</span></div></div>
+      <div class="c-hdr">
+        <div class="c-icon">💰</div>
+        <div><div class="c-title">Deposit & Earn</div><div class="c-sub">5% APY · share-based pool</div></div>
+      </div>
+      <div class="fg">
+        <label class="flabel">Deposit Amount</label>
+        <div class="iw"><input type="number" id="dAmt" placeholder="0.0" min="0" step="0.01"/><span class="itag">MON</span></div>
+      </div>
       <div class="ibox">
         <div class="ir"><span>APY</span><span class="iv">5% annual</span></div>
         <div class="ir"><span>Mechanism</span><span class="iv">share-based</span></div>
         <div class="ir"><span>Withdraw</span><span class="iv">anytime</span></div>
       </div>
-      <button class="btn btn-g" id="dBtn" onclick="doDeposit()">Deposit MON</button>
+      <button class="btn btn-primary" id="dBtn" onclick="doDeposit()">Deposit MON</button>
       <div class="dvd"></div>
-      <div class="ig"><label class="ilabel">Shares to Withdraw</label><div class="iw"><input type="number" id="wSh" placeholder="0.0" min="0" step="0.001"/><span class="itag">SHARES</span></div></div>
-      <button class="btn btn-ol" id="wBtn" onclick="doWithdraw()">Withdraw</button>
+      <div class="fg">
+        <label class="flabel">Shares to Withdraw</label>
+        <div class="iw"><input type="number" id="wSh" placeholder="0.0" min="0" step="0.001"/><span class="itag">SHR</span></div>
+      </div>
+      <button class="btn btn-ghost" id="wBtn" onclick="doWithdraw()">Withdraw</button>
     </div>
 
     <!-- BORROW -->
     <div class="card">
-      <div class="card-hdr"><div class="cic cic-p">⚡</div><div><div class="ctitle">Borrow MON</div><div class="csub">150% collateral · 10% APR · 1% fee</div></div></div>
-      <div class="ig"><label class="ilabel">Borrow Amount</label><div class="iw"><input type="number" id="bAmt" placeholder="0.0" min="0" step="0.01" oninput="calcCol()"/><span class="itag">MON</span></div></div>
+      <div class="c-hdr">
+        <div class="c-icon">⚡</div>
+        <div><div class="c-title">Borrow MON</div><div class="c-sub">150% collateral · 10% APR · 1% fee</div></div>
+      </div>
+      <div class="fg">
+        <label class="flabel">Borrow Amount</label>
+        <div class="iw"><input type="number" id="bAmt" placeholder="0.0" min="0" step="0.01" oninput="calcCol()"/><span class="itag">MON</span></div>
+      </div>
       <div class="ibox">
-        <div class="ir"><span>Collateral needed (150%)</span><span class="iv" id="rCol">—</span></div>
+        <div class="ir"><span>Collateral (150%)</span><span class="iv" id="rCol">—</span></div>
         <div class="ir"><span>Origination fee (1%)</span><span class="iv" id="oFee">—</span></div>
-        <div class="ir"><span>You receive</span><span class="iv" id="yRcv">—</span></div>
+        <div class="ir"><span>You receive</span><span class="iv val-green" id="yRcv">—</span></div>
         <div class="ir"><span>Max duration</span><span class="iv">365 days</span></div>
       </div>
-      <button class="btn btn-p" id="bBtn" onclick="doBorrow()">Borrow MON</button>
+      <button class="btn btn-accent" id="bBtn" onclick="doBorrow()">Borrow MON</button>
     </div>
 
     <!-- REPAY -->
     <div class="card">
-      <div class="card-hdr"><div class="cic cic-c">🔄</div><div><div class="ctitle">Repay Loan</div><div class="csub">pay principal + interest · get collateral back</div></div></div>
+      <div class="c-hdr">
+        <div class="c-icon">🔄</div>
+        <div><div class="c-title">Repay Loan</div><div class="c-sub">principal + interest · reclaim collateral</div></div>
+      </div>
       <div class="ibox">
         <div class="ir"><span>Total owed</span><span class="iv" id="rOwed">connect wallet</span></div>
         <div class="ir"><span>Collateral returned</span><span class="iv" id="rColRet">—</span></div>
         <div class="ir"><span>Interest rate</span><span class="iv">10% APR</span></div>
       </div>
-      <button class="btn btn-c" id="rBtn" onclick="doRepay()">Repay Loan</button>
+      <button class="btn btn-green" id="rBtn" onclick="doRepay()">Repay Loan</button>
     </div>
 
     <!-- LIQUIDATE -->
     <div class="card">
-      <div class="card-hdr"><div class="cic cic-o">🎯</div><div><div class="ctitle">Liquidate</div><div class="csub">earn 5% bonus on bad loans</div></div></div>
-      <div class="ig"><label class="ilabel">Borrower Address</label><div class="iw"><input type="text" id="liqAddr" placeholder="0x..."/></div></div>
+      <div class="c-hdr">
+        <div class="c-icon">🎯</div>
+        <div><div class="c-title">Liquidate</div><div class="c-sub">earn 5% bonus on undercollateralized loans</div></div>
+      </div>
+      <div class="fg">
+        <label class="flabel">Borrower Address</label>
+        <div class="iw"><input type="text" id="liqAddr" placeholder="0x..." style="padding-right:10px"/></div>
+      </div>
       <div class="ibox">
-        <div class="ir"><span>Your bonus</span><span class="iv">5% of collateral</span></div>
+        <div class="ir"><span>Your bonus</span><span class="iv val-green">5% of collateral</span></div>
         <div class="ir"><span>Trigger</span><span class="iv">collateral &lt; 120%</span></div>
         <div class="ir"><span>Status</span><span class="iv" id="liqSt">enter address</span></div>
       </div>
       <div class="row2">
-        <button class="btn btn-ol" style="flex:1" onclick="checkLiq()">Check</button>
-        <button class="btn btn-r" style="flex:1" id="liqBtn" onclick="doLiquidate()">Liquidate</button>
+        <button class="btn btn-ghost" style="flex:1" onclick="checkLiq()">Check</button>
+        <button class="btn btn-danger" style="flex:1" id="liqBtn" onclick="doLiquidate()">Liquidate</button>
       </div>
     </div>
 
     <!-- NEAR BRIDGE CARD -->
     <div class="card full" id="nearBridgeCard" style="display:none">
-      <div class="card-hdr">
-        <div class="cic cic-near">🔷</div>
-        <div><div class="ctitle">NEAR Bridge & Actions</div><div class="csub">manage your NEAR wallet on Monad</div></div>
+      <div class="c-hdr">
+        <div class="c-icon">🔷</div>
+        <div><div class="c-title">NEAR Bridge & Actions</div><div class="c-sub">manage your NEAR wallet on Monad</div></div>
       </div>
       <div class="grid2" style="margin:0">
         <div>
-          <div class="ibox ibox-near" style="margin-bottom:12px">
-            <div class="near-panel-title" style="margin-bottom:6px">NEAR Account</div>
-            <div class="ir"><span>Account ID</span><span class="iv-near" id="bcAccountId">—</span></div>
-            <div class="ir"><span>NEAR Balance</span><span class="iv-near" id="bcBalance">—</span></div>
-            <div class="ir"><span>Staked</span><span class="iv-near" id="bcStaked">—</span></div>
-            <div class="ir"><span>Storage Used</span><span class="iv-near" id="bcStorage">—</span></div>
+          <div class="ibox" style="margin-bottom:9px">
+            <div style="font-size:.6rem;color:var(--cyan2);letter-spacing:.8px;text-transform:uppercase;margin-bottom:4px">NEAR Account</div>
+            <div class="ir"><span>Account ID</span><span style="color:var(--cyan)" id="bcAccountId">—</span></div>
+            <div class="ir"><span>Balance</span><span style="color:var(--cyan)" id="bcBalance">—</span></div>
+            <div class="ir"><span>Staked</span><span style="color:var(--cyan)" id="bcStaked">—</span></div>
+            <div class="ir"><span>Storage</span><span style="color:var(--cyan)" id="bcStorage">—</span></div>
           </div>
-          <button class="btn btn-near-style" onclick="refreshNearBalance()">↻ Refresh NEAR Data</button>
+          <button class="btn btn-primary btn-sm" style="width:100%" onclick="refreshNearBalance()">↻ Refresh NEAR</button>
         </div>
         <div>
-          <div class="ibox ibox-near" style="margin-bottom:12px">
-            <div class="near-panel-title" style="margin-bottom:6px">Bridge to Monad</div>
-            <div class="ir"><span>Bridge via</span><span class="iv-near">Rainbow Bridge</span></div>
-            <div class="ir"><span>Supported</span><span class="iv-near">NEAR → ETH/MON</span></div>
-            <div class="ir"><span>Time</span><span class="iv-near">~5 min (optimistic)</span></div>
-            <div class="ir"><span>Fee</span><span class="iv-near">~0.01 NEAR</span></div>
+          <div class="ibox" style="margin-bottom:9px">
+            <div style="font-size:.6rem;color:var(--cyan2);letter-spacing:.8px;text-transform:uppercase;margin-bottom:4px">Bridge to Monad</div>
+            <div class="ir"><span>Bridge via</span><span style="color:var(--cyan)">Rainbow Bridge</span></div>
+            <div class="ir"><span>Route</span><span style="color:var(--cyan)">NEAR → ETH/MON</span></div>
+            <div class="ir"><span>Time</span><span style="color:var(--cyan)">~5 min</span></div>
+            <div class="ir"><span>Fee</span><span style="color:var(--cyan)">~0.01 NEAR</span></div>
           </div>
           <div class="row2">
-            <button class="btn btn-near-style" style="flex:1" onclick="openRainbowBridge()">🌈 Bridge Assets</button>
-            <button class="btn btn-ol" style="flex:1" onclick="openNearExplorer()">🔍 Explorer</button>
+            <button class="btn btn-primary" style="flex:1;font-size:.65rem" onclick="window.open('https://rainbowbridge.app/transfer','_blank')">🌈 Bridge</button>
+            <button class="btn btn-ghost" style="flex:1;font-size:.65rem" onclick="openNearExplorer()">🔍 Explorer</button>
           </div>
         </div>
       </div>
@@ -617,49 +611,49 @@ footer a:hover{color:var(--g);text-shadow:0 0 6px var(--g)}
 
     <!-- OWNER PANEL -->
     <div class="card full" id="ownerPanel" style="display:none">
-      <div class="card-hdr"><div class="cic cic-r">👑</div><div><div class="ctitle">Owner Panel</div><div class="csub">0x592B35c8917eD36c39Ef73D0F5e92B0173560b2e</div></div></div>
-      <div class="stats" style="margin:0 0 13px">
-        <div class="sc"><div class="sc-label">Protocol Fees</div><div class="sc-val" id="oFees">—</div><div class="sc-sub">ready to withdraw</div></div>
-        <div class="sc"><div class="sc-label">Total Shares</div><div class="sc-val" id="oShares">—</div><div class="sc-sub">outstanding</div></div>
-        <div class="sc"><div class="sc-label">Contract Balance</div><div class="sc-val" id="oBal">—</div><div class="sc-sub">MON held</div></div>
-        <div class="sc"><div class="sc-label">Paused</div><div class="sc-val" id="oPaused">—</div><div class="sc-sub">protocol state</div></div>
+      <div class="c-hdr">
+        <div class="c-icon">👑</div>
+        <div><div class="c-title">Owner Panel</div><div class="c-sub">0x592B35c8917eD36c39Ef73D0F5e92B0173560b2e</div></div>
       </div>
-      <div class="row2" style="flex-wrap:wrap;gap:8px">
-        <button class="btn btn-r" style="flex:1;min-width:130px" id="wfBtn" onclick="doWithdrawFees()">💸 Withdraw Fees</button>
-        <button class="btn btn-ol" style="flex:1;min-width:130px" onclick="doPause()">⏸ Pause</button>
-        <button class="btn btn-ol" style="flex:1;min-width:130px" onclick="doUnpause()">▶ Unpause</button>
+      <div class="stats" style="margin:0 0 10px">
+        <div class="stat"><div class="stat-lbl">Protocol Fees</div><div class="stat-val" id="oFees">—</div><div class="stat-sub">ready to withdraw</div></div>
+        <div class="stat"><div class="stat-lbl">Total Shares</div><div class="stat-val" id="oShares">—</div><div class="stat-sub">outstanding</div></div>
+        <div class="stat"><div class="stat-lbl">Contract Balance</div><div class="stat-val" id="oBal">—</div><div class="stat-sub">MON held</div></div>
+        <div class="stat"><div class="stat-lbl">Paused</div><div class="stat-val" id="oPaused">—</div><div class="stat-sub">protocol state</div></div>
+      </div>
+      <div class="row2" style="flex-wrap:wrap;gap:7px">
+        <button class="btn btn-danger" style="flex:1;min-width:120px" id="wfBtn" onclick="doWithdrawFees()">💸 Withdraw Fees</button>
+        <button class="btn btn-ghost" style="flex:1;min-width:120px" onclick="doPause()">⏸ Pause</button>
+        <button class="btn btn-ghost" style="flex:1;min-width:120px" onclick="doUnpause()">▶ Unpause</button>
       </div>
     </div>
-  </div>
+
+  </div><!-- /grid2 -->
 
   <footer>
     Contract: <a href="https://explorer.monad.xyz/address/0xB1D6424336820D11Ba1053fE313101e4B45FE620" target="_blank">0xB1D6424336820D11Ba1053fE313101e4B45FE620</a>
     &nbsp;·&nbsp; Monad Mainnet · Chain ID 143
-    &nbsp;·&nbsp; NEAR integration powered by <a href="https://docs.near.org" target="_blank">near-api-js</a>
+    &nbsp;·&nbsp; NEAR: <a href="https://docs.near.org" target="_blank">near-api-js</a>
   </footer>
-</div>
+
+</div><!-- /wrap -->
 <div id="toast"></div>
 
 <script>
 // ── CONFIG ─────────────────────────────────────────────────────
 const CONTRACT   = "0xB1D6424336820D11Ba1053fE313101e4B45FE620";
 const OWNER_ADDR = "0x592B35c8917eD36c39Ef73D0F5e92B0173560b2e";
-const CHAIN_ID   = 143;
 const CHAIN_HEX  = "0x8F";
-
-// NEAR CONFIG
 const NEAR_NETWORK  = "mainnet";
 const NEAR_NODE_URL = "https://rpc.mainnet.near.org";
-const NEAR_WALLET_URLS = {
-  mynearwallet: "https://app.mynearwallet.com",
-  sender:       "https://senderwallet.io",
-  meteor:       "https://wallet.meteorwallet.app",
-  here:         "https://my.herewallet.app"
-};
 const NEAR_EXPLORER = "https://nearblocks.io/address/";
-
-// Full ABI
-const ABI = [
+const NEAR_WALLET_URLS = {
+  mynearwallet:"https://app.mynearwallet.com",
+  sender:"https://senderwallet.io",
+  meteor:"https://wallet.meteorwallet.app",
+  here:"https://my.herewallet.app"
+};
+const ABI=[
   {"inputs":[{"internalType":"address","name":"_owner","type":"address"}],"stateMutability":"nonpayable","type":"constructor"},
   {"inputs":[],"name":"deposit","outputs":[],"stateMutability":"payable","type":"function"},
   {"inputs":[{"internalType":"uint256","name":"shares","type":"uint256"}],"name":"withdraw","outputs":[],"stateMutability":"nonpayable","type":"function"},
@@ -686,581 +680,206 @@ const ABI = [
   {"inputs":[{"internalType":"uint256","name":"dur","type":"uint256"}],"name":"setMaxLoanDuration","outputs":[],"stateMutability":"nonpayable","type":"function"}
 ];
 
-// ── STATE ──────────────────────────────────────────────────────
-let provider, signer, contract, wallet = null, wLabel = "";
-let nearAccount = null;   // NEAR account object
-let nearAccountId = null; // "alice.near"
-let nearWalletType = null;
-let nearApi = null;       // near-api-js connection
+let provider,signer,contract,wallet=null,wLabel="";
+let nearAccountId=null,nearWalletType=null;
 
-// ── NEAR RPC helper ────────────────────────────────────────────
-async function nearRPC(method, params) {
-  const res = await fetch(NEAR_NODE_URL, {
-    method: "POST",
-    headers: {"Content-Type": "application/json"},
-    body: JSON.stringify({jsonrpc:"2.0", id:"gb", method, params})
-  });
-  const j = await res.json();
-  if (j.error) throw new Error(j.error.message || JSON.stringify(j.error));
-  return j.result;
-}
-
-// Query NEAR account state
-async function fetchNearAccount(accountId) {
-  try {
-    const result = await nearRPC("query", {
-      request_type: "view_account",
-      finality: "final",
-      account_id: accountId
+// ── BG PARTICLE CANVAS ─────────────────────────────────────────
+(function(){
+  const c=document.getElementById("bg-canvas");
+  const ctx=c.getContext("2d");
+  let W,H,pts=[];
+  function resize(){W=c.width=window.innerWidth;H=c.height=window.innerHeight;pts=Array.from({length:60},()=>({x:Math.random()*W,y:Math.random()*H,vx:(Math.random()-.5)*.3,vy:(Math.random()-.5)*.3,r:Math.random()*1.5+.5}))}
+  resize();window.addEventListener("resize",resize);
+  setInterval(()=>{
+    ctx.clearRect(0,0,W,H);
+    pts.forEach(p=>{
+      p.x+=p.vx;p.y+=p.vy;
+      if(p.x<0||p.x>W)p.vx*=-1;
+      if(p.y<0||p.y>H)p.vy*=-1;
+      ctx.beginPath();ctx.arc(p.x,p.y,p.r,0,Math.PI*2);
+      ctx.fillStyle="#00d4ff";ctx.fill();
     });
-    return result;
-  } catch(e) {
-    console.warn("NEAR account fetch:", e.message);
-    return null;
-  }
-}
+    for(let i=0;i<pts.length;i++)for(let j=i+1;j<pts.length;j++){
+      const dx=pts[i].x-pts[j].x,dy=pts[i].y-pts[j].y,d=Math.sqrt(dx*dx+dy*dy);
+      if(d<120){ctx.beginPath();ctx.moveTo(pts[i].x,pts[i].y);ctx.lineTo(pts[j].x,pts[j].y);ctx.strokeStyle=`rgba(0,180,255,${.3*(1-d/120)})`;ctx.lineWidth=.5;ctx.stroke()}
+    }
+  },40);
+})();
 
-// Derive an EVM-compatible address from NEAR account
-// NEAR accounts don't map 1:1 to EVM, so we show their implicit address
-// if they have one (64-char hex account IDs are implicit addresses).
-function nearToEvmAddress(accountId) {
-  if (!accountId) return null;
-  // If account ID is a 64-char hex string → it's an implicit account with EVM addr
-  if (/^[0-9a-fA-F]{64}$/.test(accountId)) {
-    return "0x" + accountId.slice(0, 40);
-  }
-  // Named accounts: use keccak-style truncation for display only
-  return "0x" + Array.from(accountId)
-    .map(c => c.charCodeAt(0).toString(16).padStart(2, "0"))
-    .join("")
-    .slice(0, 40)
-    .padEnd(40, "0");
+// ── NEAR RPC ───────────────────────────────────────────────────
+async function nearRPC(method,params){
+  const r=await fetch(NEAR_NODE_URL,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({jsonrpc:"2.0",id:"gb",method,params})});
+  const j=await r.json();if(j.error)throw new Error(j.error.message);return j.result;
+}
+async function fetchNearAccount(id){try{return await nearRPC("query",{request_type:"view_account",finality:"final",account_id:id})}catch{return null}}
+function nearToEvmAddress(id){
+  if(!id)return null;
+  if(/^[0-9a-fA-F]{64}$/.test(id))return "0x"+id.slice(0,40);
+  return "0x"+Array.from(id).map(c=>c.charCodeAt(0).toString(16).padStart(2,"0")).join("").slice(0,40).padEnd(40,"0");
 }
 
 // ── MODAL ──────────────────────────────────────────────────────
-function openModal()  { el("overlay").classList.add("on"); }
-function closeModal() { el("overlay").classList.remove("on"); }
-el("overlay").onclick = e => { if (e.target.id === "overlay") closeModal(); };
+function openModal(){el("overlay").classList.add("on")}
+function closeModal(){el("overlay").classList.remove("on")}
+el("overlay").onclick=e=>{if(e.target.id==="overlay")closeModal()};
+function toggleNearPanel(){const p=el("nearPanel"),a=el("nearArrow"),o=p.classList.contains("show");p.classList.toggle("show",!o);a.textContent=o?"→":"↓"}
 
-function toggleNearPanel() {
-  const panel = el("nearPanel");
-  const arrow = el("nearArrow");
-  const isOpen = panel.classList.contains("show");
-  panel.classList.toggle("show", !isOpen);
-  arrow.textContent = isOpen ? "→" : "↓";
+// ── ETH CALL ───────────────────────────────────────────────────
+async function ethCall(fn,args){
+  if(!window.ethereum)throw new Error("No wallet");
+  const iface=new ethers.Interface(ABI);
+  const data=iface.encodeFunctionData(fn,args||[]);
+  const hex=await window.ethereum.request({method:"eth_call",params:[{to:CONTRACT,data},"latest"]});
+  return iface.decodeFunctionResult(fn,hex);
 }
 
-// ── EVM CONNECT ────────────────────────────────────────────────
-async function ethCall(fnName, args) {
-  if (!window.ethereum) throw new Error("No wallet connected");
-  const iface = new ethers.Interface(ABI);
-  const data  = iface.encodeFunctionData(fnName, args || []);
-  const hex   = await window.ethereum.request({
-    method: "eth_call",
-    params: [{to: CONTRACT, data}, "latest"]
-  });
-  return iface.decodeFunctionResult(fnName, hex);
+// ── CONNECT EVM ────────────────────────────────────────────────
+async function connectMM(){closeModal();if(!window.ethereum)return toast("MetaMask not found","Install from metamask.io","e");try{await window.ethereum.request({method:"eth_requestAccounts"});wLabel="MetaMask 🦊";await finishEvm()}catch(e){toast("Failed",parseErr(e),"e")}}
+async function connectAny(){closeModal();if(!window.ethereum)return toast("No wallet","Install an EVM wallet","e");try{await window.ethereum.request({method:"eth_requestAccounts"});wLabel="EVM 🔗";await finishEvm()}catch(e){toast("Failed",parseErr(e),"e")}}
+
+async function finishEvm(){
+  provider=new ethers.BrowserProvider(window.ethereum);
+  signer=await provider.getSigner();wallet=await signer.getAddress();
+  contract=new ethers.Contract(CONTRACT,ABI,signer);
+  try{await window.ethereum.request({method:"wallet_switchEthereumChain",params:[{chainId:CHAIN_HEX}]})}
+  catch(e){if(e.code===-4902||e.code===4902)await window.ethereum.request({method:"wallet_addEthereumChain",params:[{chainId:CHAIN_HEX,chainName:"Monad Mainnet",nativeCurrency:{name:"MON",symbol:"MON",decimals:18},rpcUrls:["https://rpc.monad.xyz"],blockExplorerUrls:["https://explorer.monad.xyz"]}]})}
+  provider=new ethers.BrowserProvider(window.ethereum);signer=await provider.getSigner();wallet=await signer.getAddress();contract=new ethers.Contract(CONTRACT,ABI,signer);
+  const s=wallet.slice(0,6)+"..."+wallet.slice(-4);
+  el("addrBadge").textContent=s;el("addrBadge").style.display="block";
+  el("noWalletBanner").style.display="none";
+  ["mmBtn","nearBtn"].forEach(id=>{const b=el(id);b.textContent="✅ "+s;b.classList.add("ok")});
+  el("wLabel").textContent=wLabel;
+  if(wallet.toLowerCase()===OWNER_ADDR.toLowerCase()){el("ownerPanel").style.display="block";toast("Owner","Panel unlocked 👑","i")}
+  window.ethereum.on("accountsChanged",()=>location.reload());window.ethereum.on("chainChanged",()=>location.reload());
+  await refreshAll();toast("Connected",wLabel+" · "+s,"s");
 }
 
-async function connectMM() {
-  closeModal();
-  if (!window.ethereum) return toast("MetaMask not found", "Install from metamask.io", "e");
-  try {
-    await window.ethereum.request({method: "eth_requestAccounts"});
-    wLabel = "MetaMask 🦊";
-    await finishEvmConnect();
-  } catch(e) { toast("Failed", parseErr(e), "e"); }
-}
-
-async function connectAny() {
-  closeModal();
-  if (!window.ethereum) return toast("No wallet", "Install an EVM wallet", "e");
-  try {
-    await window.ethereum.request({method: "eth_requestAccounts"});
-    wLabel = "EVM Wallet 🔗";
-    await finishEvmConnect();
-  } catch(e) { toast("Failed", parseErr(e), "e"); }
-}
-
-async function finishEvmConnect() {
-  provider = new ethers.BrowserProvider(window.ethereum);
-  signer   = await provider.getSigner();
-  wallet   = await signer.getAddress();
-  contract = new ethers.Contract(CONTRACT, ABI, signer);
-
-  try {
-    await window.ethereum.request({method: "wallet_switchEthereumChain", params: [{chainId: CHAIN_HEX}]});
-  } catch(e) {
-    if (e.code === -4902 || e.code === 4902) {
-      await window.ethereum.request({method: "wallet_addEthereumChain", params: [{
-        chainId: CHAIN_HEX, chainName: "Monad Mainnet",
-        nativeCurrency: {name: "MON", symbol: "MON", decimals: 18},
-        rpcUrls: ["https://rpc.monad.xyz"],
-        blockExplorerUrls: ["https://explorer.monad.xyz"]
-      }]});
-    }
+// ── CONNECT NEAR ───────────────────────────────────────────────
+async function connectNEAR(type){
+  closeModal();nearWalletType=type;
+  if(type==="sender"&&window.ethereum&&(window.ethereum.isSenderWallet||window.ethereum.isNearWallet)){
+    try{await window.ethereum.request({method:"eth_requestAccounts"});wLabel="NEAR Sender 🔷";if(window.near&&window.near.getAccountId)nearAccountId=window.near.getAccountId();await finishEvm();await finishNear();return}catch(e){toast("Sender failed",parseErr(e),"e");return}
   }
-  provider = new ethers.BrowserProvider(window.ethereum);
-  signer   = await provider.getSigner();
-  wallet   = await signer.getAddress();
-  contract = new ethers.Contract(CONTRACT, ABI, signer);
-
-  const short = wallet.slice(0, 6) + "..." + wallet.slice(-4);
-  el("addrBadge").textContent = short;
-  el("addrBadge").style.display = "block";
-  el("noWalletBanner").style.display = "none";
-  ["mmBtn", "nearBtn"].forEach(id => {
-    const b = el(id); b.textContent = "✅ " + short; b.classList.add("ok");
-  });
-  el("wLabel").textContent = wLabel;
-
-  if (wallet.toLowerCase() === OWNER_ADDR.toLowerCase()) {
-    el("ownerPanel").style.display = "block";
-    toast("Owner detected", "Owner panel unlocked 👑", "i");
-  }
-
-  window.ethereum.on("accountsChanged", () => location.reload());
-  window.ethereum.on("chainChanged",    () => location.reload());
-
-  await refreshAll();
-  toast("Connected", wLabel + " · " + short, "s");
+  try{await initNearApi(type)}catch(e){await redirectNear(type)}
 }
-
-// ── NEAR CONNECT ───────────────────────────────────────────────
-async function connectNEAR(walletType) {
-  closeModal();
-  nearWalletType = walletType;
-
-  // Strategy 1: If Sender/Meteor/Here extension is present as window.ethereum, use EVM path
-  if (walletType === "sender" && window.ethereum &&
-      (window.ethereum.isSenderWallet || window.ethereum.isNearWallet)) {
-    toast("NEAR (Sender)", "Connecting via Sender EVM bridge…", "n");
-    try {
-      await window.ethereum.request({method: "eth_requestAccounts"});
-      wLabel = "NEAR Sender 🔷";
-      // Also grab NEAR account from Sender's near property
-      if (window.near && window.near.getAccountId) {
-        nearAccountId = window.near.getAccountId();
-      }
-      await finishEvmConnect();
-      await finishNearConnect();
-      return;
-    } catch(e) { toast("Sender EVM failed", parseErr(e), "e"); return; }
-  }
-
-  // Strategy 2: Use near-api-js to connect to NEAR RPC directly
-  toast("Connecting NEAR…", "Initialising near-api-js connection", "n");
-  try {
-    await initNearApi(walletType);
-  } catch(e) {
-    console.warn("near-api-js error:", e);
-    // Strategy 3: Redirect to wallet URL for auth
-    await redirectNearAuth(walletType);
-  }
+async function initNearApi(type){
+  if(window.nearApi){
+    const near=await window.nearApi.connect({networkId:NEAR_NETWORK,nodeUrl:NEAR_NODE_URL,walletUrl:NEAR_WALLET_URLS[type]||NEAR_WALLET_URLS.mynearwallet,helperUrl:"https://helper.mainnet.near.org"});
+    const wc=new window.nearApi.WalletConnection(near,"gasborrow");
+    if(!wc.isSignedIn()){toast("Redirecting…","Opening "+type+" for sign-in","n");wc.requestSignIn({successUrl:window.location.href+"?near_success=1",failureUrl:window.location.href});return}
+    nearAccountId=wc.getAccountId();await finishNear();
+  }else{await redirectNear(type)}
 }
-
-async function initNearApi(walletType) {
-  // Check if near-api-js loaded
-  if (typeof nearApi !== "undefined" && window.nearApi) {
-    const near = await window.nearApi.connect({
-      networkId: NEAR_NETWORK,
-      nodeUrl:   NEAR_NODE_URL,
-      walletUrl: NEAR_WALLET_URLS[walletType] || NEAR_WALLET_URLS.mynearwallet,
-      helperUrl: "https://helper.mainnet.near.org",
-      explorerUrl: "https://nearblocks.io"
-    });
-
-    // Use WalletConnection to handle sign-in
-    const walletConn = new window.nearApi.WalletConnection(near, "gasborrow");
-
-    if (!walletConn.isSignedIn()) {
-      // Redirect to NEAR wallet for login
-      toast("Redirecting…", "Opening " + walletType + " wallet for sign-in", "n");
-      walletConn.requestSignIn({
-        successUrl: window.location.href + "?near_success=1",
-        failureUrl: window.location.href + "?near_fail=1"
-      });
-      return;
-    }
-
-    nearAccountId = walletConn.getAccountId();
-    nearAccount   = walletConn.account();
-    await finishNearConnect();
-  } else {
-    // near-api-js not available, fall back to redirect
-    await redirectNearAuth(walletType);
+async function redirectNear(type){
+  const params=new URLSearchParams(window.location.search);
+  if(params.get("near_success")==="1"||params.has("account_id")){
+    const id=params.get("account_id")||localStorage.getItem("near_account_id");
+    if(id){nearAccountId=id;localStorage.setItem("near_account_id",id);localStorage.setItem("near_wallet_type",type);await finishNear();return}
   }
+  localStorage.setItem("near_wallet_type",type);
+  const su=encodeURIComponent(window.location.href.split("?")[0]+"?near_success=1");
+  setTimeout(()=>window.open(`${NEAR_WALLET_URLS[type]}/login/?success_url=${su}`,"_blank"),500);
+  const id=prompt("Enter NEAR Account ID (e.g. alice.near):\n\nOr finish sign-in in the tab then refresh.","");
+  if(id&&id.length>2){nearAccountId=id.trim();localStorage.setItem("near_account_id",nearAccountId);finishNear()}
 }
-
-async function redirectNearAuth(walletType) {
-  const walletUrl = NEAR_WALLET_URLS[walletType] || NEAR_WALLET_URLS.mynearwallet;
-  // Check URL params for returning user
-  const params = new URLSearchParams(window.location.search);
-  if (params.get("near_success") === "1" || params.has("account_id")) {
-    const accountId = params.get("account_id") || localStorage.getItem("near_account_id");
-    if (accountId) {
-      nearAccountId = accountId;
-      localStorage.setItem("near_account_id", accountId);
-      localStorage.setItem("near_wallet_type", walletType);
-      await finishNearConnect();
-      return;
-    }
-  }
-
-  // Store intended wallet type before redirect
-  localStorage.setItem("near_wallet_type", walletType);
-
-  const successUrl = encodeURIComponent(window.location.href.split("?")[0] + "?near_success=1");
-  const authUrl = `${walletUrl}/login/?success_url=${successUrl}&failure_url=${encodeURIComponent(window.location.href)}`;
-
-  toast("Opening NEAR wallet", "Redirecting to " + walletType, "n");
-  setTimeout(() => window.open(authUrl, "_blank"), 500);
-
-  // Show manual entry fallback
-  showNearManualEntry();
-}
-
-function showNearManualEntry() {
-  const id = prompt(
-    "Enter your NEAR Account ID manually (e.g. alice.near):\n\n" +
-    "Or complete sign-in in the opened tab, then refresh.",
-    ""
-  );
-  if (id && id.includes(".near") || (id && id.length > 2)) {
-    nearAccountId = id.trim();
-    localStorage.setItem("near_account_id", nearAccountId);
-    finishNearConnect();
-  }
-}
-
-async function finishNearConnect() {
-  if (!nearAccountId) return;
-
-  // Show NEAR badge in header
-  el("nearIdText").textContent  = nearAccountId;
-  el("nearIdBadge").style.display = "flex";
-  el("nearBtn").textContent = "🔷 " + nearAccountId.slice(0, 14) + (nearAccountId.length > 14 ? "…" : "");
-  el("nearBtn").classList.add("ok");
-  el("noWalletBanner").style.display = "none";
-  el("wLabel").textContent = "NEAR 🔷";
-
-  // Show NEAR info card
-  el("nearInfoCard").classList.add("show");
-  el("nearWalletType").textContent = nearWalletType || "near wallet";
-  el("nicAccountId").textContent   = nearAccountId;
-  el("nicNetwork").textContent     = NEAR_NETWORK;
-  el("nicEvmAddr").textContent     = nearToEvmAddress(nearAccountId);
-
-  // Show NEAR bridge card
-  el("nearBridgeCard").style.display = "block";
-  el("bcAccountId").textContent = nearAccountId;
-
-  // Fetch live NEAR account data
+async function finishNear(){
+  if(!nearAccountId)return;
+  el("nearIdText").textContent=nearAccountId;el("nearIdBadge").style.display="block";
+  el("nearBtn").textContent="🔷 "+nearAccountId.slice(0,14)+(nearAccountId.length>14?"…":"");el("nearBtn").classList.add("ok");
+  el("noWalletBanner").style.display="none";el("wLabel").textContent="NEAR 🔷";
+  el("nearInfoCard").classList.add("show");el("nearWalletType").textContent=nearWalletType||"near wallet";
+  el("nicAccountId").textContent=nearAccountId;el("nicNetwork").textContent=NEAR_NETWORK;el("nicEvmAddr").textContent=nearToEvmAddress(nearAccountId);
+  el("nearBridgeCard").style.display="block";el("bcAccountId").textContent=nearAccountId;
   await refreshNearBalance();
-
-  // If NEAR also has EVM (Sender), it was already set up in finishEvmConnect
-  // Otherwise we just show NEAR data without EVM interactivity
-  if (!wallet) {
-    el("lBadge").textContent = "NEAR ONLY";
-    el("lBadge").className   = "loan-badge lb-none";
-    el("wLabel").textContent  = "NEAR 🔷 (no EVM)";
-    toast("NEAR Connected", nearAccountId + " — EVM bridge needed for borrowing", "n");
-  } else {
-    toast("NEAR + EVM", nearAccountId + " bridged ✅", "s");
-  }
+  if(!wallet){el("lBadge").textContent="NEAR ONLY";el("lBadge").className="lbadge lb-none";toast("NEAR Connected",nearAccountId+" — use EVM bridge to borrow","n")}
+  else toast("NEAR + EVM",nearAccountId+" bridged ✅","s");
 }
-
-async function refreshNearBalance() {
-  if (!nearAccountId) return;
-  try {
-    const acc = await fetchNearAccount(nearAccountId);
-    if (!acc) return;
-
-    const yocto = BigInt(acc.amount || "0");
-    const near  = Number(yocto) / 1e24;
-    const storage = acc.storage_usage || 0;
-    const locked = acc.locked ? (Number(BigInt(acc.locked)) / 1e24).toFixed(4) + " NEAR" : "0 NEAR";
-
-    el("nicBalance").textContent = near.toFixed(4) + " NEAR";
-    el("nicStatus").textContent  = near > 0 ? "Active" : "Inactive";
-    el("bcBalance").textContent  = near.toFixed(4) + " NEAR";
-    el("bcStaked").textContent   = locked;
-    el("bcStorage").textContent  = (storage / 1000).toFixed(1) + " KB";
-
-    toast("NEAR updated", nearAccountId + " · " + near.toFixed(4) + " NEAR", "n");
-  } catch(e) {
-    toast("NEAR fetch failed", e.message, "e");
-  }
+async function refreshNearBalance(){
+  if(!nearAccountId)return;
+  try{
+    const acc=await fetchNearAccount(nearAccountId);if(!acc)return;
+    const near=Number(BigInt(acc.amount||"0"))/1e24;
+    const locked=acc.locked?(Number(BigInt(acc.locked))/1e24).toFixed(4)+" NEAR":"0 NEAR";
+    el("nicBalance").textContent=near.toFixed(4)+" NEAR";el("nicStatus").textContent=near>0?"Active":"Inactive";
+    el("bcBalance").textContent=near.toFixed(4)+" NEAR";el("bcStaked").textContent=locked;
+    el("bcStorage").textContent=((acc.storage_usage||0)/1000).toFixed(1)+" KB";
+    toast("NEAR updated",nearAccountId+" · "+near.toFixed(4)+" NEAR","n");
+  }catch(e){toast("NEAR failed",e.message,"e")}
 }
+async function checkNearReturn(){
+  const p=new URLSearchParams(window.location.search);
+  if(p.get("near_success")==="1"){const id=localStorage.getItem("near_account_id"),type=localStorage.getItem("near_wallet_type")||"mynearwallet";if(id){nearAccountId=id;nearWalletType=type;await finishNear();window.history.replaceState({},"",window.location.pathname);return}}
+  const sid=localStorage.getItem("near_account_id");
+  if(sid&&!nearAccountId){nearAccountId=sid;nearWalletType=localStorage.getItem("near_wallet_type")||"mynearwallet";await finishNear()}
+}
+function openNearExplorer(){window.open(nearAccountId?NEAR_EXPLORER+nearAccountId:"https://nearblocks.io","_blank")}
 
-// ── Check for returning NEAR auth on page load ─────────────────
-async function checkNearReturn() {
-  const params = new URLSearchParams(window.location.search);
-  if (params.get("near_success") === "1") {
-    const savedId   = localStorage.getItem("near_account_id");
-    const savedType = localStorage.getItem("near_wallet_type") || "mynearwallet";
-    if (savedId) {
-      nearAccountId  = savedId;
-      nearWalletType = savedType;
-      toast("NEAR Returned", "Welcome back, " + savedId, "n");
-      await finishNearConnect();
-      // Clean URL
-      window.history.replaceState({}, "", window.location.pathname);
+// ── REFRESH ────────────────────────────────────────────────────
+async function refreshAll(){
+  if(!window.ethereum)return;
+  try{
+    const[liq,fees,shares,rate,bal]=await ethCall("getProtocolStats",[]);
+    el("sLiq").textContent=fmt(liq)+" MON";el("sRate").textContent=fmtR(rate);
+    if(el("oFees")){el("oFees").textContent=fmt(fees)+" MON";el("oShares").textContent=fmt(shares);el("oBal").textContent=fmt(bal)+" MON"}
+    if(el("oPaused")){const[p]=await ethCall("paused",[]);el("oPaused").textContent=p?"⏸ YES":"▶ NO";el("oPaused").style.color=p?"var(--red)":"var(--green)"}
+    if(wallet){
+      const[pr,,col,act,,owed,isLiq]=await ethCall("getLoan",[wallet]);
+      el("lPrin").textContent=act?fmt(pr)+" MON":"—";el("lCol").textContent=act?fmt(col)+" MON":"—";
+      el("lOwed").textContent=act?fmt(owed)+" MON":"—";el("rOwed").textContent=act?fmt(owed)+" MON":"no active loan";el("rColRet").textContent=act?fmt(col)+" MON":"—";
+      const b=el("lBadge");
+      if(!act){b.textContent="NO LOAN";b.className="lbadge lb-none"}else if(isLiq){b.textContent="⚠ AT RISK";b.className="lbadge lb-risk"}else{b.textContent="ACTIVE ✓";b.className="lbadge lb-ok"}
+      const[val]=await ethCall("lenderValue",[wallet]);const info=await ethCall("lenders",[wallet]);
+      el("mShares").textContent=fmt(info[0]);el("mVal").textContent=fmt(val)+" MON";
     }
-  }
-  // Check stored session
-  const storedId   = localStorage.getItem("near_account_id");
-  const storedType = localStorage.getItem("near_wallet_type");
-  if (storedId && !nearAccountId) {
-    nearAccountId  = storedId;
-    nearWalletType = storedType || "mynearwallet";
-    await finishNearConnect();
-  }
+  }catch(e){console.warn("Refresh:",e.message)}
 }
 
-// ── NEAR UTILITIES ─────────────────────────────────────────────
-function openRainbowBridge() {
-  window.open("https://rainbowbridge.app/transfer", "_blank");
-  toast("Rainbow Bridge", "Bridging NEAR ↔ ETH/MON", "n");
+// ── ACTIONS ────────────────────────────────────────────────────
+async function doDeposit(){
+  if(!needW())return;const a=el("dAmt").value;if(!a||+a<=0)return toast("Invalid","Enter MON amount","e");
+  try{busy("dBtn",1);const tx=await contract.deposit({value:ethers.parseEther(a)});toast("Sent","Confirming…","i");await tx.wait();toast("Deposited!",a+" MON ✓","s");el("dAmt").value="";await refreshAll()}catch(e){toast("Failed",parseErr(e),"e")}finally{busy("dBtn",0)}
 }
-
-function openNearExplorer() {
-  if (nearAccountId) {
-    window.open(NEAR_EXPLORER + nearAccountId, "_blank");
-  } else {
-    window.open("https://nearblocks.io", "_blank");
-  }
+async function doWithdraw(){
+  if(!needW())return;const s=el("wSh").value;if(!s||+s<=0)return toast("Invalid","Enter shares","e");
+  try{busy("wBtn",1);const tx=await contract.withdraw(ethers.parseEther(s));toast("Sent","Withdrawing…","i");await tx.wait();toast("Withdrawn!","MON sent ✓","s");el("wSh").value="";await refreshAll()}catch(e){toast("Failed",parseErr(e),"e")}finally{busy("wBtn",0)}
 }
-
-// ── EVM READS ─────────────────────────────────────────────────
-async function refreshAll() {
-  if (!window.ethereum) return;
-  try {
-    const stats = await ethCall("getProtocolStats", []);
-    const [liq, fees, shares, rate, bal] = stats;
-    el("sLiq").textContent  = fmt(liq) + " MON";
-    el("sRate").textContent = fmtR(rate);
-    el("oFees")   && (el("oFees").textContent   = fmt(fees) + " MON");
-    el("oShares") && (el("oShares").textContent = fmt(shares));
-    el("oBal")    && (el("oBal").textContent    = fmt(bal) + " MON");
-
-    if (el("oPaused")) {
-      const [paused] = await ethCall("paused", []);
-      el("oPaused").textContent = paused ? "⏸ YES" : "▶ NO";
-      el("oPaused").style.color = paused ? "var(--accent3)" : "var(--green)";
-    }
-
-    if (wallet) {
-      const loan = await ethCall("getLoan", [wallet]);
-      const [principal,, collateral, active,, totalOwed, isLiq] = loan;
-      el("lPrin").textContent  = active ? fmt(principal) + " MON" : "—";
-      el("lCol").textContent   = active ? fmt(collateral) + " MON" : "—";
-      el("lOwed").textContent  = active ? fmt(totalOwed) + " MON" : "—";
-      el("rOwed").textContent  = active ? fmt(totalOwed) + " MON" : "no active loan";
-      el("rColRet").textContent= active ? fmt(collateral) + " MON" : "—";
-
-      const badge = el("lBadge");
-      if (!active)      { badge.textContent = "NO LOAN";    badge.className = "loan-badge lb-none"; }
-      else if (isLiq)   { badge.textContent = "⚠️ AT RISK"; badge.className = "loan-badge lb-risk"; }
-      else              { badge.textContent = "ACTIVE ✅";   badge.className = "loan-badge lb-ok";   }
-
-      const [val]  = await ethCall("lenderValue", [wallet]);
-      const info   = await ethCall("lenders", [wallet]);
-      el("mShares").textContent = fmt(info[0]);
-      el("mVal").textContent    = fmt(val) + " MON";
-    }
-  } catch(e) { console.warn("Refresh:", e.message); }
+async function doBorrow(){
+  if(!needW())return;const a=el("bAmt").value;if(!a||+a<=0)return toast("Invalid","Enter borrow amount","e");
+  try{busy("bBtn",1);const amtW=ethers.parseEther(a),colW=(amtW*150n)/100n;const tx=await contract.borrow(amtW,{value:colW});toast("Sent","Borrowing "+a+" MON…","i");await tx.wait();toast("Borrowed!",a+" MON ✓","s");el("bAmt").value="";calcCol();await refreshAll()}catch(e){toast("Failed",parseErr(e),"e")}finally{busy("bBtn",0)}
 }
-
-// ── EVM ACTIONS ────────────────────────────────────────────────
-async function doDeposit() {
-  if (!needW()) return;
-  const a = el("dAmt").value;
-  if (!a || +a <= 0) return toast("Invalid", "Enter MON amount", "e");
-  try {
-    busy("dBtn", 1);
-    const tx = await contract.deposit({value: ethers.parseEther(a)});
-    toast("Sent", "Confirming…", "i"); await tx.wait();
-    toast("Deposited!", a + " MON ✅", "s");
-    el("dAmt").value = ""; await refreshAll();
-  } catch(e) { toast("Failed", parseErr(e), "e"); }
-  finally { busy("dBtn", 0); }
+async function doRepay(){
+  if(!needW())return;
+  try{busy("rBtn",1);const[,,,act,,owed]=await ethCall("getLoan",[wallet]);if(!act)return toast("No loan","No active loan","e");const buf=owed*1002n/1000n;const tx=await contract.repay({value:buf});toast("Sent","Repaying…","i");await tx.wait();toast("Repaid!","Collateral returned ✓","s");await refreshAll()}catch(e){toast("Failed",parseErr(e),"e")}finally{busy("rBtn",0)}
 }
-
-async function doWithdraw() {
-  if (!needW()) return;
-  const s = el("wSh").value;
-  if (!s || +s <= 0) return toast("Invalid", "Enter shares", "e");
-  try {
-    busy("wBtn", 1);
-    const tx = await contract.withdraw(ethers.parseEther(s));
-    toast("Sent", "Withdrawing…", "i"); await tx.wait();
-    toast("Withdrawn!", "MON sent ✅", "s");
-    el("wSh").value = ""; await refreshAll();
-  } catch(e) { toast("Failed", parseErr(e), "e"); }
-  finally { busy("wBtn", 0); }
+async function checkLiq(){
+  const addr=el("liqAddr").value.trim();if(!addr||!window.ethereum)return;
+  try{const[r]=await ethCall("isLiquidatable",[addr]);el("liqSt").textContent=r?"⚠ YES — liquidatable":"✓ Healthy";el("liqSt").style.color=r?"var(--red)":"var(--green)"}catch{el("liqSt").textContent="invalid address"}
 }
-
-async function doBorrow() {
-  if (!needW()) return;
-  const a = el("bAmt").value;
-  if (!a || +a <= 0) return toast("Invalid", "Enter borrow amount", "e");
-  try {
-    busy("bBtn", 1);
-    const amtW = ethers.parseEther(a);
-    const colW = (amtW * 150n) / 100n;
-    const tx = await contract.borrow(amtW, {value: colW});
-    toast("Sent", "Borrowing " + a + " MON…", "i"); await tx.wait();
-    toast("Borrowed!", a + " MON ✅", "s");
-    el("bAmt").value = ""; calcCol(); await refreshAll();
-  } catch(e) { toast("Failed", parseErr(e), "e"); }
-  finally { busy("bBtn", 0); }
+async function doLiquidate(){
+  if(!needW())return;const addr=el("liqAddr").value.trim();if(!addr)return toast("No address","Enter borrower address","e");
+  try{busy("liqBtn",1);const tx=await contract.liquidate(addr);toast("Sent","Liquidating…","i");await tx.wait();toast("Done!","5% bonus earned ✓","s");await refreshAll()}catch(e){toast("Failed",parseErr(e),"e")}finally{busy("liqBtn",0)}
 }
-
-async function doRepay() {
-  if (!needW()) return;
-  try {
-    busy("rBtn", 1);
-    const loan = await ethCall("getLoan", [wallet]);
-    const [,,, active,, totalOwed] = loan;
-    if (!active) return toast("No loan", "No active loan to repay", "e");
-    const buf = totalOwed * 1002n / 1000n;
-    const tx = await contract.repay({value: buf});
-    toast("Sent", "Repaying…", "i"); await tx.wait();
-    toast("Repaid!", "Collateral returned ✅", "s");
-    await refreshAll();
-  } catch(e) { toast("Failed", parseErr(e), "e"); }
-  finally { busy("rBtn", 0); }
+async function doWithdrawFees(){
+  if(!wallet)return;try{busy("wfBtn",1);const tx=await contract.withdrawFees();toast("Sent","…","i");await tx.wait();toast("Done!","Fees withdrawn 💰","s");await refreshAll()}catch(e){toast("Failed",parseErr(e),"e")}finally{busy("wfBtn",0)}
 }
-
-async function checkLiq() {
-  const addr = el("liqAddr").value.trim();
-  if (!addr || !window.ethereum) return;
-  try {
-    const [r] = await ethCall("isLiquidatable", [addr]);
-    el("liqSt").textContent = r ? "⚠️ YES — can liquidate!" : "✅ NO — healthy";
-    el("liqSt").style.color = r ? "var(--accent3)" : "var(--green)";
-  } catch { el("liqSt").textContent = "invalid address"; }
-}
-
-async function doLiquidate() {
-  if (!needW()) return;
-  const addr = el("liqAddr").value.trim();
-  if (!addr) return toast("No address", "Enter borrower address", "e");
-  try {
-    busy("liqBtn", 1);
-    const tx = await contract.liquidate(addr);
-    toast("Sent", "Liquidating…", "i"); await tx.wait();
-    toast("Done!", "5% bonus earned ✅", "s");
-    await refreshAll();
-  } catch(e) { toast("Failed", parseErr(e), "e"); }
-  finally { busy("liqBtn", 0); }
-}
-
-async function doWithdrawFees() {
-  if (!wallet) return;
-  try {
-    busy("wfBtn", 1);
-    const tx = await contract.withdrawFees();
-    toast("Sent", "Withdrawing fees…", "i"); await tx.wait();
-    toast("Done!", "Fees withdrawn 💰", "s");
-    await refreshAll();
-  } catch(e) { toast("Failed", parseErr(e), "e"); }
-  finally { busy("wfBtn", 0); }
-}
-
-async function doPause()   {
-  if (!wallet) return;
-  try { const tx=await contract.pause();   await tx.wait(); toast("Paused",   "⏸ Protocol paused",   "i"); await refreshAll(); }
-  catch(e) { toast("Failed", parseErr(e), "e"); }
-}
-async function doUnpause() {
-  if (!wallet) return;
-  try { const tx=await contract.unpause(); await tx.wait(); toast("Unpaused", "▶ Protocol resumed",   "s"); await refreshAll(); }
-  catch(e) { toast("Failed", parseErr(e), "e"); }
-}
+async function doPause(){if(!wallet)return;try{await(await contract.pause()).wait();toast("Paused","⏸","i");await refreshAll()}catch(e){toast("Failed",parseErr(e),"e")}}
+async function doUnpause(){if(!wallet)return;try{await(await contract.unpause()).wait();toast("Unpaused","▶","s");await refreshAll()}catch(e){toast("Failed",parseErr(e),"e")}}
 
 // ── HELPERS ────────────────────────────────────────────────────
-function calcCol() {
-  const a = parseFloat(el("bAmt").value) || 0;
-  el("rCol").textContent = (a * 1.5).toFixed(4) + " MON";
-  el("oFee").textContent = (a * 0.01).toFixed(4) + " MON";
-  el("yRcv").textContent = (a * 0.99).toFixed(4) + " MON";
+function calcCol(){const a=parseFloat(el("bAmt").value)||0;el("rCol").textContent=(a*1.5).toFixed(4)+" MON";el("oFee").textContent=(a*.01).toFixed(4)+" MON";el("yRcv").textContent=(a*.99).toFixed(4)+" MON"}
+function needW(){if(wallet)return true;if(nearAccountId&&!wallet){toast("EVM required","Bridge NEAR first","n");return false}toast("Not connected","Connect wallet first","e");openModal();return false}
+function el(id){return document.getElementById(id)}
+function fmt(w){try{const n=parseFloat(ethers.formatEther(w));return n<.001?n.toFixed(6):n.toFixed(4)}catch{return"—"}}
+function fmtR(w){try{return parseFloat(ethers.formatEther(w)).toFixed(4)}catch{return"—"}}
+function parseErr(e){if(e.reason)return e.reason;const m=e.message||"";if(m.includes("GasBorrow:"))return m.split("GasBorrow:")[1].split('"')[0].trim();if(m.toLowerCase().includes("rejected"))return"Transaction rejected";return m.slice(0,80)||"Unknown error"}
+function busy(id,on){const b=el(id);if(!b)return;b.disabled=!!on;if(on){b._o=b.innerHTML;b.innerHTML='<span class="sp"></span>Processing…'}else{b.innerHTML=b._o||b.innerHTML}}
+function toast(title,msg,type="i"){
+  const ic={s:"✓",e:"✕",i:"i",n:"◈"};const tc={s:"ti-s",e:"ti-e",i:"ti-i",n:"ti-n"};
+  const d=document.createElement("div");d.className="ti "+tc[type];
+  d.innerHTML=`<div style="color:var(--cyan2);font-weight:bold;margin-top:1px">${ic[type]}</div><div class="ti-body"><div class="ti-t">${title}</div><div class="ti-msg">${msg}</div></div>`;
+  el("toast").appendChild(d);setTimeout(()=>d.remove(),5500);
 }
-function needW() {
-  if (wallet) return true;
-  if (nearAccountId && !wallet) {
-    toast("EVM required", "Bridge your NEAR via Rainbow Bridge first", "n");
-    return false;
-  }
-  toast("Not connected", "Connect your wallet first", "e");
-  openModal(); return false;
-}
-function el(id) { return document.getElementById(id); }
-function fmt(w)  { try { const n = parseFloat(ethers.formatEther(w)); return n < 0.001 ? n.toFixed(6) : n.toFixed(4); } catch { return "—"; } }
-function fmtR(w) { try { return parseFloat(ethers.formatEther(w)).toFixed(4); } catch { return "—"; } }
-function parseErr(e) {
-  if (e.reason) return e.reason;
-  const m = e.message || "";
-  if (m.includes("GasBorrow:")) return m.split("GasBorrow:")[1].split('"')[0].trim();
-  if (m.includes("user rejected") || m.includes("User rejected")) return "Transaction rejected";
-  return m.slice(0, 90) || "Unknown error";
-}
-function busy(id, on) {
-  const b = el(id); if (!b) return;
-  b.disabled = !!on;
-  if (on)  { b._o = b.innerHTML; b.innerHTML = '<span class="sp"></span>Processing…'; }
-  else     { b.innerHTML = b._o || b.innerHTML; }
-}
-function toast(title, msg, type = "i") {
-  const ic = {s:"✅", e:"❌", i:"ℹ️", n:"🔷"};
-  const tc = {s:"ti-s", e:"ti-e", i:"ti-i", n:"ti-n"};
-  const d  = document.createElement("div");
-  d.className = "ti " + tc[type];
-  d.innerHTML = `<div style="margin-top:1px">${ic[type]}</div><div class="ti-body"><div class="ti-t">${title}</div><div style="color:var(--muted)">${msg}</div></div>`;
-  el("toast").appendChild(d);
-  setTimeout(() => d.remove(), 6000);
-}
-
-// ── MATRIX RAIN ───────────────────────────────────────────────
-function initMatrix() {
-  const canvas = document.getElementById("matrix-canvas");
-  const ctx    = canvas.getContext("2d");
-  let W, H, cols, drops;
-  const chars  = "GASBORROW01MONAD⛽NEAR∞∑Δ≡<>{}[]()#$%&*@!?01";
-
-  function resize() {
-    W = canvas.width  = window.innerWidth;
-    H = canvas.height = window.innerHeight;
-    cols  = Math.floor(W / 16);
-    drops = Array(cols).fill(1);
-  }
-  resize();
-  window.addEventListener("resize", resize);
-
-  setInterval(() => {
-    ctx.fillStyle = "rgba(0,0,0,0.05)";
-    ctx.fillRect(0, 0, W, H);
-    ctx.font = "13px 'Share Tech Mono', monospace";
-    for (let i = 0; i < cols; i++) {
-      const ch = chars[Math.floor(Math.random() * chars.length)];
-      const bright = Math.random() > 0.95;
-      ctx.fillStyle = bright ? "#39ff14" : "#00ff41";
-      ctx.globalAlpha = bright ? 0.9 : 0.4;
-      ctx.fillText(ch, i * 16, drops[i] * 16);
-      ctx.globalAlpha = 1;
-      if (drops[i] * 16 > H && Math.random() > 0.975) drops[i] = 0;
-      drops[i]++;
-    }
-  }, 55);
-}
-
-// ── INIT ───────────────────────────────────────────────────────
-window.onload = async () => {
-  initMatrix();
-  await checkNearReturn();
-  setInterval(() => { if (wallet) refreshAll(); }, 30000);
-};
+window.onload=async()=>{await checkNearReturn();setInterval(()=>{if(wallet)refreshAll()},30000)};
 </script>
 </body>
 </html>
